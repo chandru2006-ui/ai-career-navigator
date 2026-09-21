@@ -715,6 +715,15 @@ function inlineRender(text) {
   return value;
 }
 
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── Message rendering ─────────────────────────────────────────────────────────
 function addMessage(role, content, time) {
   const msgs   = document.getElementById('chat-messages');
