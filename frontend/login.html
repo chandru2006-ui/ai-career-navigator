@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="auth-split">
+  <!-- Left panel -->
+  <div class="auth-left">
+    <div style="position:relative;z-index:1;text-align:center;max-width:400px">
+      <div style="font-size:4rem;margin-bottom:1.5rem">🎯</div>
+      <h2 style="font-size:2rem;font-weight:900;margin-bottom:1rem;color:#fff">Welcome Back</h2>
+      <p style="color:rgba(255,255,255,.75);font-size:1rem;line-height:1.7;margin-bottom:2rem">
+        Your skill gaps didn't disappear while you were gone. Let's get back to closing them.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:.875rem 1.25rem;display:flex;align-items:center;gap:.75rem;text-align:left">
+          <span style="font-size:1.25rem">📊</span>
+          <div>
+            <div style="font-weight:600;font-size:.875rem;color:#fff">Track Your Progress</div>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.65)">See how your skills improve over time</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:.875rem 1.25rem;display:flex;align-items:center;gap:.75rem;text-align:left">
+          <span style="font-size:1.25rem">🤖</span>
+          <div>
+            <div style="font-weight:600;font-size:.875rem;color:#fff">Chat with AI Mentor</div>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.65)">Get personalized guidance anytime</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:.875rem 1.25rem;display:flex;align-items:center;gap:.75rem;text-align:left">
+          <span style="font-size:1.25rem">🗺️</span>
+          <div>
+            <div style="font-weight:600;font-size:.875rem;color:#fff">Follow Your Roadmap</div>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.65)">Structured path to your target career</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Right panel -->
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🎯</div>
+        <span class="auth-logo-text">AI Career Navigator</span>
+      </div>
+      <h1 class="auth-title">Sign in</h1>
+      <p class="auth-subtitle">Enter your credentials to access your dashboard.</p>
+
+      <div id="alert-box"></div>
+
+      <form id="login-form" autocomplete="on">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-input" type="email" id="email" name="email"
+            placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">
+            Password
+          </label>
+          <div style="position:relative">
+            <input class="form-input" type="password" id="password" name="password"
+              placeholder="Enter your password" autocomplete="current-password" required style="padding-right:3rem">
+            <button type="button" id="toggle-pwd" style="
+              position:absolute;right:.75rem;top:50%;transform:translateY(-50%);
+              background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;padding:0
+            ">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:1.5rem;color:var(--text-muted);font-size:.875rem">
+        Don't have an account? <a href="/register.html" style="color:var(--primary-light);font-weight:600">Create one free →</a>
+      </p>
+      <p style="text-align:center;margin-top:.75rem">
+        <a href="/index.html" style="color:var(--text-dim);font-size:.8rem">← Back to home</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+redirectIfAuth();
+
+document.getElementById('toggle-pwd').addEventListener('click', function() {
+  const pwd = document.getElementById('password');
+  pwd.type = pwd.type === 'password' ? 'text' : 'password';
+  this.textContent = pwd.type === 'password' ? '👁' : '🙈';
+});
+
+document.getElementById('login-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alertBox = document.getElementById('alert-box');
+  const btn = document.getElementById('login-btn');
+  alertBox.innerHTML = '';
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    alertBox.innerHTML = '<div class="alert alert-error">Please fill in all fields.</div>';
+    return;
+  }
+
+  setLoading(btn, true, 'Signing in...');
+
+  try {
+    const data = await api.login({ email, password });
+    setToken(data.token);
+    setUser(data.user);
+    showToast('Welcome back, ' + data.user.name + '!', 'success');
+    setTimeout(() => { window.location.href = '/dashboard.html'; }, 600);
+  } catch (err) {
+    alertBox.innerHTML = `<div class="alert alert-error">⚠ ${err.message}</div>`;
+    setLoading(btn, false);
+  }
+});
+</script>
+</body>
+</html>

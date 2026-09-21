@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="auth-split">
+  <div class="auth-left">
+    <div style="position:relative;z-index:1;text-align:center;max-width:420px">
+      <div style="font-size:4rem;margin-bottom:1.5rem">🚀</div>
+      <h2 style="font-size:2rem;font-weight:900;margin-bottom:1rem;color:#fff">Start Your Journey</h2>
+      <p style="color:rgba(255,255,255,.75);font-size:1rem;line-height:1.7;margin-bottom:2rem">
+        Thousands of students and job seekers have used AI Career Navigator to close skill gaps and land their dream roles.
+      </p>
+      <div style="background:rgba(255,255,255,.08);border-radius:var(--radius);padding:1.5rem;text-align:left">
+        <div style="font-weight:700;color:#fff;margin-bottom:1rem">What you'll get:</div>
+        <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.875rem;color:rgba(255,255,255,.8)">
+          <div>✅ Adaptive skill assessment for your career</div>
+          <div>✅ Precise skill gap analysis vs. industry requirements</div>
+          <div>✅ AI-generated personalized learning roadmap</div>
+          <div>✅ 24/7 AI Career Mentor for guidance</div>
+          <div>✅ Progress tracking & reassessment</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-card" style="max-width:460px">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🎯</div>
+        <span class="auth-logo-text">AI Career Navigator</span>
+      </div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Free forever. No credit card required.</p>
+
+      <div id="alert-box"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" type="text" id="name" placeholder="Arun Kumar" required maxlength="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" id="email" placeholder="arun@example.com" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Password *</label>
+            <div style="position:relative">
+              <input class="form-input" type="password" id="password" placeholder="Min 8 characters" required style="padding-right:3rem">
+              <button type="button" id="toggle-pwd" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">👁</button>
+            </div>
+            <div id="pwd-strength" style="margin-top:.35rem;font-size:.75rem;color:var(--text-muted)"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Confirm Password *</label>
+            <input class="form-input" type="password" id="confirm-password" placeholder="Repeat password" required>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:1.25rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Education</label>
+            <input class="form-input" type="text" id="education" placeholder="B.Tech CSE, BCA, B.Sc...">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Experience Level</label>
+            <select class="form-select" id="experience">
+              <option value="">Select level</option>
+              <option value="fresher">Fresher / Student</option>
+              <option value="junior">Junior (0–2 yrs)</option>
+              <option value="mid">Mid-level (2–5 yrs)</option>
+              <option value="senior">Senior (5+ yrs)</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="register-btn" style="margin-top:1.5rem">
+          Create Free Account
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:1.25rem;color:var(--text-muted);font-size:.875rem">
+        Already have an account? <a href="/login.html" style="color:var(--primary-light);font-weight:600">Sign in →</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+redirectIfAuth();
+
+document.getElementById('toggle-pwd').addEventListener('click', function() {
+  const pwd = document.getElementById('password');
+  pwd.type = pwd.type === 'password' ? 'text' : 'password';
+  this.textContent = pwd.type === 'password' ? '👁' : '🙈';
+});
+
+document.getElementById('password').addEventListener('input', function() {
+  const val = this.value;
+  const el = document.getElementById('pwd-strength');
+  if (!val) { el.textContent = ''; return; }
+  let strength = 0;
+  if (val.length >= 8) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const colors = ['', '#EF4444', '#F59E0B', '#06B6D4', '#10B981'];
+  el.textContent = `Password strength: ${labels[strength]}`;
+  el.style.color = colors[strength];
+});
+
+document.getElementById('register-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alertBox = document.getElementById('alert-box');
+  const btn = document.getElementById('register-btn');
+  alertBox.innerHTML = '';
+
+  const name     = document.getElementById('name').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm  = document.getElementById('confirm-password').value;
+  const education      = document.getElementById('education').value.trim();
+  const experienceLevel = document.getElementById('experience').value;
+
+  if (!name || !email || !password) {
+    alertBox.innerHTML = '<div class="alert alert-error">Please fill in all required fields.</div>';
+    return;
+  }
+  if (password.length < 8) {
+    alertBox.innerHTML = '<div class="alert alert-error">Password must be at least 8 characters.</div>';
+    return;
+  }
+  if (password !== confirm) {
+    alertBox.innerHTML = '<div class="alert alert-error">Passwords do not match.</div>';
+    return;
+  }
+
+  setLoading(btn, true, 'Creating account...');
+
+  try {
+    const data = await api.register({ name, email, password, education, experienceLevel });
+    setToken(data.token);
+    setUser(data.user);
+    showToast('Account created! Let\'s set up your profile.', 'success');
+    setTimeout(() => { window.location.href = '/profile.html'; }, 700);
+  } catch (err) {
+    alertBox.innerHTML = `<div class="alert alert-error">⚠ ${err.message}</div>`;
+    setLoading(btn, false);
+  }
+});
+</script>
+</body>
+</html>

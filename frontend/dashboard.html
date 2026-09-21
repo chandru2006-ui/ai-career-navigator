@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <header class="page-header">
+      <button class="hamburger" id="hamburger">☰</button>
+      <div>
+        <div class="page-title" id="header-greeting">Dashboard</div>
+        <div class="page-subtitle" id="header-career">Loading your profile...</div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <a href="/assessment.html" class="btn btn-primary btn-sm">📝 Take Assessment</a>
+      </div>
+    </header>
+
+    <main class="page-body" id="dashboard-content">
+      <!-- Loading state -->
+      <div id="loading-state" style="text-align:center;padding:4rem">
+        <div class="loading-spinner" style="width:36px;height:36px;border-width:3px;margin:0 auto 1rem"></div>
+        <p class="text-muted">Loading your dashboard...</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+if (!requireAuth()) throw new Error('not auth');
+injectSidebar('dashboard');
+
+function profBadge(p) {
+  const c = {Expert:'badge-green',Advanced:'badge-cyan',Intermediate:'badge-yellow',Beginner:'badge-red'};
+  return `<span class="badge ${c[p]||'badge-gray'}">${p}</span>`;
+}
+
+function renderDashboard(d) {
+  const u = d.user;
+  const r = d.latestResult;
+  const rm = d.roadmap;
+
+  document.getElementById('header-greeting').textContent = `Hello, ${u.name} 👋`;
+  document.getElementById('header-career').textContent = u.careerGoal
+    ? `Target: ${u.careerGoal.title}` : 'No career goal set';
+
+  if (!r) {
+    document.getElementById('dashboard-content').innerHTML = `
+      <div class="alert alert-info" style="margin-bottom:1.5rem">
+        👋 Welcome! Complete your profile and take your first assessment to get started.
+      </div>
+      <div class="grid-2" style="max-width:700px">
+        <div class="card" style="text-align:center;padding:2.5rem">
+          <div style="font-size:2.5rem;margin-bottom:1rem">👤</div>
+          <h3 style="margin-bottom:.5rem">Set Up Profile</h3>
+          <p class="text-muted text-sm" style="margin-bottom:1.5rem">Add your career goal and background</p>
+          <a href="/profile.html" class="btn btn-outline btn-sm">Go to Profile →</a>
+        </div>
+        <div class="card" style="text-align:center;padding:2.5rem">
+          <div style="font-size:2.5rem;margin-bottom:1rem">📝</div>
+          <h3 style="margin-bottom:.5rem">Take Assessment</h3>
+          <p class="text-muted text-sm" style="margin-bottom:1.5rem">Discover your current skill levels</p>
+          <a href="/assessment.html" class="btn btn-primary btn-sm">Start Now →</a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const topGaps = (r.skillGaps || []).filter(g => g.gap > 0).sort((a,b) => b.gap - a.gap).slice(0, 3);
+  const strongSkills = (r.skillScores || []).filter(s => s.score >= 70).length;
+  const weakSkills   = (r.skillScores || []).filter(s => s.score < 40).length;
+
+  const improvements = d.skillImprovement || [];
+  const improved = improvements.filter(s => s.improvement > 0);
+
+  document.getElementById('dashboard-content').innerHTML = `
+    <!-- Stats Row -->
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="stat-card">
+        <div class="stat-icon cyan">🎯</div>
+        <div>
+          <div class="stat-value">${r.careerReadiness || 0}%</div>
+          <div class="stat-label">Career Readiness</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">💪</div>
+        <div>
+          <div class="stat-value">${strongSkills}</div>
+          <div class="stat-label">Strong Skills</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon yellow">📈</div>
+        <div>
+          <div class="stat-value">${(r.skillGaps||[]).filter(g=>g.gap>0&&g.gap<=25).length}</div>
+          <div class="stat-label">Skills Developing</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">⚠️</div>
+        <div>
+          <div class="stat-value">${(r.skillGaps||[]).filter(g=>g.gap>25).length}</div>
+          <div class="stat-label">Need Attention</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-2" style="margin-bottom:1.5rem">
+      <!-- Career Readiness -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🎯 Career Readiness</div>
+          <span class="badge badge-blue">${r.careerId?.title || 'Your Career'}</span>
+        </div>
+        <div style="margin-bottom:.75rem;font-size:.875rem;color:var(--text-muted)">
+          Overall match with ${r.careerId?.title || 'target career'} requirements
+        </div>
+        <div style="font-size:2.75rem;font-weight:900;color:var(--primary-light);margin-bottom:.75rem">
+          ${r.careerReadiness || 0}%
+        </div>
+        <div class="progress-bar-wrap" style="height:12px;margin-bottom:1rem">
+          <div class="progress-bar-fill ${progressBarColor(r.careerReadiness||0)}"
+               style="width:${r.careerReadiness||0}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted)">
+          <span>Last assessed: ${formatDate(r.completedAt)}</span>
+          <span>Attempt #${r.attemptNumber}</span>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.5rem">
+          <a href="/results.html" class="btn btn-outline btn-sm">View Details</a>
+          <a href="/assessment.html" class="btn btn-secondary btn-sm">Reassess</a>
+        </div>
+      </div>
+
+      <!-- Top Skill Gaps -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚠️ Top Skill Gaps</div>
+          <a href="/results.html" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        ${topGaps.length === 0
+          ? '<div class="empty-state" style="padding:1rem"><p>No significant gaps! 🎉</p></div>'
+          : topGaps.map(g => `
+            <div class="skill-bar">
+              <div class="skill-bar-header">
+                <span class="skill-bar-name">${g.skillName}</span>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <span style="font-size:.75rem;color:var(--text-muted)">${g.currentLevel}% / ${g.requiredLevel}%</span>
+                  <span class="badge ${gapSeverityBadge(g.severity)}">${g.severity}</span>
+                </div>
+              </div>
+              <div style="position:relative;height:8px;background:var(--bg-hover);border-radius:100px;overflow:hidden">
+                <div style="position:absolute;left:0;top:0;height:100%;width:${g.currentLevel}%;background:var(--primary);border-radius:100px;transition:width .5s"></div>
+                <div style="position:absolute;left:0;top:0;height:100%;width:2px;background:var(--success);margin-left:${g.requiredLevel}%;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-dim);margin-top:.25rem">
+                <span>Your level</span><span>Gap: ${g.gap} pts</span><span>Required: ${g.requiredLevel}%</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+
+    <!-- Second Row -->
+    <div class="grid-2" style="margin-bottom:1.5rem">
+      <!-- Roadmap Status -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🗺️ Learning Roadmap</div>
+          <a href="/roadmap.html" class="btn btn-ghost btn-sm">View Full</a>
+        </div>
+        ${rm ? `
+          <div style="margin-bottom:1rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+              <span class="text-sm text-muted">Overall Progress</span>
+              <span class="text-sm fw-bold">${rm.overallProgress}%</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill green" style="width:${rm.overallProgress}%"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:.875rem">
+            <div><span style="font-weight:700">${rm.completedPhases}</span> <span class="text-muted">completed</span></div>
+            <div><span style="font-weight:700">${rm.totalPhases}</span> <span class="text-muted">total phases</span></div>
+          </div>
+          ${rm.currentPhase ? `
+            <div style="background:var(--bg-hover);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+              <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.25rem">Current Phase</div>
+              <div style="font-weight:700">${rm.currentPhase.title}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">${rm.currentPhase.duration} · ${rm.currentPhase.progressPercentage}% done</div>
+            </div>
+          ` : ''}
+          <div style="margin-top:1rem">
+            <a href="/roadmap.html" class="btn btn-outline btn-sm">Continue Learning</a>
+          </div>
+        ` : `
+          <div class="empty-state" style="padding:1.5rem">
+            <div class="empty-icon">🗺️</div>
+            <h4>No roadmap yet</h4>
+            <p>Generate your AI-powered learning roadmap</p>
+            <a href="/roadmap.html" class="btn btn-primary btn-sm">Generate Roadmap</a>
+          </div>
+        `}
+      </div>
+
+      <!-- Skill Scores Summary -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💡 Skill Levels</div>
+          <a href="/results.html" class="btn btn-ghost btn-sm">Details</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.6rem;max-height:280px;overflow-y:auto">
+          ${(r.skillScores||[]).sort((a,b)=>b.score-a.score).map(s => `
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <span style="font-size:.8rem;min-width:100px;font-weight:500">${s.skillName}</span>
+              <div style="flex:1;background:var(--bg-hover);border-radius:100px;height:6px;overflow:hidden">
+                <div style="height:100%;width:${s.score}%;border-radius:100px;
+                  background:${s.score>=80?'var(--success)':s.score>=60?'var(--accent)':s.score>=40?'var(--warning)':'var(--danger)'};
+                  transition:width .5s"></div>
+              </div>
+              <span style="font-size:.8rem;font-weight:700;min-width:35px;text-align:right">${s.score}%</span>
+              ${profBadge(s.proficiency)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Mentor CTA -->
+    <div style="background:linear-gradient(135deg,rgba(79,70,229,.15),rgba(6,182,212,.1));border:1px solid rgba(79,70,229,.3);border-radius:var(--radius);padding:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:.25rem">🤖 Chat with Your AI Career Mentor</div>
+        <div class="text-muted text-sm">Ask about your skill gaps, get study plans, interview prep, and personalized advice.</div>
+      </div>
+      <a href="/mentor.html" class="btn btn-primary">Open AI Mentor →</a>
+    </div>
+  `;
+}
+
+async function loadDashboard() {
+  try {
+    const data = await api.getDashboard();
+    document.getElementById('loading-state')?.remove();
+    renderDashboard(data.dashboard);
+  } catch (err) {
+    document.getElementById('dashboard-content').innerHTML = `
+      <div class="alert alert-error">Failed to load dashboard: ${err.message}</div>
+    `;
+  }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

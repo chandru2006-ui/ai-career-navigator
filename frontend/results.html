@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Results & Skill Gaps — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <header class="page-header">
+      <button class="hamburger" id="hamburger">☰</button>
+      <div>
+        <div class="page-title">Results &amp; Skill Gap Analysis</div>
+        <div class="page-subtitle">Your detailed skill assessment and career gap analysis</div>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <a href="/assessment.html" class="btn btn-outline btn-sm">📝 Reassess</a>
+        <a href="/roadmap.html"    class="btn btn-primary btn-sm">🗺️ View Roadmap</a>
+      </div>
+    </header>
+
+    <main class="page-body" id="results-content">
+      <div style="text-align:center;padding:4rem">
+        <div class="loading-spinner" style="width:36px;height:36px;border-width:3px;margin:0 auto 1rem"></div>
+        <p class="text-muted">Loading results...</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+if (!requireAuth()) throw new Error('not auth');
+injectSidebar('results');
+
+const params = new URLSearchParams(location.search);
+const resultId = params.get('resultId');
+
+function profColor(p) {
+  return {Expert:'#10B981',Advanced:'#06B6D4',Intermediate:'#F59E0B',Beginner:'#EF4444'}[p]||'#94A3B8';
+}
+function profBadge(p) {
+  const c={Expert:'badge-green',Advanced:'badge-cyan',Intermediate:'badge-yellow',Beginner:'badge-red'};
+  return `<span class="badge ${c[p]||'badge-gray'}">${p}</span>`;
+}
+function severityBadge(s) {
+  const c={None:'badge-green',Minimal:'badge-green',Low:'badge-cyan',Medium:'badge-yellow',High:'badge-red','Very High':'badge-red'};
+  return `<span class="badge ${c[s]||'badge-gray'}">${s}</span>`;
+}
+function barColor(pct) {
+  if(pct>=80) return 'var(--success)';
+  if(pct>=60) return 'var(--accent)';
+  if(pct>=40) return 'var(--warning)';
+  return 'var(--danger)';
+}
+
+function renderResults(result) {
+  const scores = result.skillScores || [];
+  const gaps   = result.skillGaps   || [];
+
+  document.getElementById('results-content').innerHTML = `
+    <!-- Summary row -->
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="stat-card">
+        <div class="stat-icon cyan">🎯</div>
+        <div>
+          <div class="stat-value">${result.careerReadiness}%</div>
+          <div class="stat-label">Career Readiness</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">📊</div>
+        <div>
+          <div class="stat-value">${result.overallScore}%</div>
+          <div class="stat-label">Overall Score</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">💪</div>
+        <div>
+          <div class="stat-value">${scores.filter(s=>s.score>=70).length}</div>
+          <div class="stat-label">Strong Skills (≥70%)</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">📉</div>
+        <div>
+          <div class="stat-value">${gaps.filter(g=>g.gap>0).length}</div>
+          <div class="stat-label">Skills with Gaps</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Career + date info -->
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div class="badge badge-blue" style="font-size:.85rem;padding:.4rem .875rem">
+        🎯 ${result.careerId?.title || 'Target Career'}
+      </div>
+      <span class="text-muted text-sm">Assessed: ${formatDate(result.completedAt)}</span>
+      <span class="text-muted text-sm">Attempt #${result.attemptNumber}</span>
+      ${result.attemptNumber > 1 ? '<span class="badge badge-green">↑ Reassessment</span>' : '<span class="badge badge-blue">First Assessment</span>'}
+    </div>
+
+    <div class="grid-2" style="margin-bottom:1.5rem">
+      <!-- Skill Scores -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💡 Your Skill Levels</div>
+          <span class="text-muted text-sm">${scores.length} skills assessed</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.1rem">
+          ${scores.sort((a,b)=>b.score-a.score).map(s=>`
+            <div>
+              <div class="skill-bar-header" style="margin-bottom:.4rem">
+                <span style="font-weight:600">${s.skillName}</span>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <span style="font-size:.8rem;color:var(--text-muted)">${s.correctAnswers}/${s.totalQuestions} correct</span>
+                  ${profBadge(s.proficiency)}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:.75rem">
+                <div style="flex:1;background:var(--bg-hover);border-radius:100px;height:8px;overflow:hidden">
+                  <div style="height:100%;width:${s.score}%;background:${barColor(s.score)};border-radius:100px;transition:width .6s ease"></div>
+                </div>
+                <span style="font-weight:700;font-size:.9rem;min-width:36px;text-align:right">${s.score}%</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Skill Gaps -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚠️ Skill Gaps vs Requirements</div>
+          <span class="text-muted text-sm">${gaps.filter(g=>g.gap>0).length} gaps found</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.1rem">
+          ${gaps.sort((a,b)=>b.gap-a.gap).map(g=>`
+            <div>
+              <div class="skill-bar-header" style="margin-bottom:.4rem">
+                <span style="font-weight:600">${g.skillName}</span>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  ${severityBadge(g.severity)}
+                </div>
+              </div>
+              <div style="position:relative;height:8px;background:var(--bg-hover);border-radius:100px;overflow:visible;margin-bottom:.3rem">
+                <div style="position:absolute;left:0;top:0;height:8px;width:${g.currentLevel}%;background:${barColor(g.currentLevel)};border-radius:100px;transition:width .6s"></div>
+                ${g.requiredLevel <= 100 ? `
+                  <div style="position:absolute;top:-4px;bottom:-4px;left:${g.requiredLevel}%;width:2px;background:var(--success);z-index:2"
+                       data-tooltip="Required: ${g.requiredLevel}%"></div>
+                ` : ''}
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-dim)">
+                <span>Your level: <strong style="color:var(--text)">${g.currentLevel}%</strong></span>
+                <span class="${g.gap>0?'text-danger':''}" style="font-weight:600">Gap: ${g.gap > 0 ? '−'+g.gap : '✓ Met'}</span>
+                <span>Required: <strong style="color:var(--text)">${g.requiredLevel}%</strong></span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Full gap table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 Detailed Comparison Table</div>
+        <div style="display:flex;gap:.5rem">
+          <span class="badge badge-green" style="font-size:.75rem">■ Your Level</span>
+          <span class="badge badge-blue" style="font-size:.75rem">▲ Required</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Skill</th>
+              <th>Your Level</th>
+              <th>Proficiency</th>
+              <th>Required</th>
+              <th>Gap</th>
+              <th>Severity</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${gaps.sort((a,b)=>b.gap-a.gap).map(g=>`
+              <tr>
+                <td><span style="font-weight:600">${g.skillName}</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:.5rem">
+                    <div style="width:60px;height:6px;background:var(--bg-hover);border-radius:100px;overflow:hidden">
+                      <div style="height:100%;width:${g.currentLevel}%;background:${barColor(g.currentLevel)};border-radius:100px"></div>
+                    </div>
+                    <span>${g.currentLevel}%</span>
+                  </div>
+                </td>
+                <td>${profBadge(scores.find(s=>s.skillName===g.skillName)?.proficiency||'Beginner')}</td>
+                <td><span style="color:var(--success);font-weight:600">${g.requiredLevel}%</span></td>
+                <td>
+                  ${g.gap > 0
+                    ? `<span style="color:var(--danger);font-weight:700">−${g.gap}</span>`
+                    : `<span style="color:var(--success);font-weight:700">✓ 0</span>`}
+                </td>
+                <td>${severityBadge(g.severity)}</td>
+                <td>
+                  <span class="badge ${g.priority==='critical'?'badge-red':g.priority==='high'?'badge-yellow':'badge-gray'}" style="text-transform:capitalize">
+                    ${g.priority}
+                  </span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Generate roadmap CTA -->
+    ${gaps.filter(g=>g.gap>0).length > 0 ? `
+      <div style="background:linear-gradient(135deg,rgba(79,70,229,.1),rgba(6,182,212,.1));border:1px solid rgba(79,70,229,.3);border-radius:var(--radius);padding:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-top:1.5rem">
+        <div>
+          <div style="font-weight:700;margin-bottom:.25rem">🗺️ Ready to Close These Gaps?</div>
+          <div class="text-muted text-sm">Generate your AI-powered personalized learning roadmap based on these results.</div>
+        </div>
+        <div style="display:flex;gap:.75rem">
+          <a href="/roadmap.html" class="btn btn-primary">Generate My Roadmap →</a>
+          <a href="/mentor.html"  class="btn btn-outline">Ask AI Mentor</a>
+        </div>
+      </div>
+    ` : `
+      <div class="alert alert-success" style="margin-top:1.5rem">
+        🎉 Excellent! You meet all requirements for ${result.careerId?.title}. Consider exploring advanced topics or applying!
+      </div>
+    `}
+  `;
+}
+
+async function loadResults() {
+  try {
+    let result;
+    if (resultId) {
+      const data = await api.getResult(resultId);
+      result = data.result;
+    } else {
+      const data = await api.getLatestResult();
+      result = data.result;
+    }
+
+    if (!result) {
+      document.getElementById('results-content').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <h3>No Results Yet</h3>
+          <p>Take your first assessment to see your skill analysis here.</p>
+          <a href="/assessment.html" class="btn btn-primary">Start Assessment</a>
+        </div>
+      `;
+      return;
+    }
+
+    renderResults(result);
+  } catch (err) {
+    document.getElementById('results-content').innerHTML = `
+      <div class="alert alert-error">Failed to load results: ${err.message}</div>
+    `;
+  }
+}
+
+loadResults();
+</script>
+</body>
+</html>

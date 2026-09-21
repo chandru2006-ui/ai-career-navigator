@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Career Navigator — Discover Your Path</title>
+<link rel="stylesheet" href="/css/main.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+.section-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-light);margin-bottom:.75rem}
+.section-title{font-size:2rem;font-weight:800;margin-bottom:1rem}
+.section-desc{color:var(--text-muted);font-size:1rem;max-width:560px;margin:0 auto 2.5rem;text-align:center;line-height:1.7}
+section{padding:5rem 2rem}
+.gradient-text{background:linear-gradient(135deg,#fff,var(--primary-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(79,70,229,.15);border:1px solid rgba(79,70,229,.4);border-radius:100px;padding:.3rem 1rem;font-size:.8rem;color:var(--primary-light);margin-bottom:1.5rem}
+.careers-marquee{display:flex;gap:1rem;overflow:hidden;padding:1rem 0;-webkit-mask:linear-gradient(90deg,transparent,#fff 10%,#fff 90%,transparent)}
+.careers-track{display:flex;gap:1rem;animation:marquee 25s linear infinite;min-width:max-content}
+@keyframes marquee{to{transform:translateX(-50%)}}
+.career-pill{background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:.4rem 1rem;font-size:.8rem;white-space:nowrap;color:var(--text-muted)}
+.cta-section{background:linear-gradient(135deg,rgba(79,70,229,.15),rgba(6,182,212,.15));border:1px solid rgba(79,70,229,.3);border-radius:var(--radius-lg);padding:4rem 2rem;text-align:center;margin:0 2rem 3rem}
+.stats-row{display:flex;justify-content:center;gap:4rem;margin:3rem 0;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-item .val{font-size:2.5rem;font-weight:900;color:var(--primary-light)}
+.stat-item .lbl{font-size:.85rem;color:var(--text-muted)}
+footer{background:var(--bg-card);border-top:1px solid var(--border);padding:2rem;text-align:center;color:var(--text-muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<!-- Nav -->
+<nav class="landing-nav">
+  <div style="display:flex;align-items:center;gap:.75rem">
+    <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🎯</div>
+    <span style="font-weight:800;font-size:1.05rem">AI Career Navigator</span>
+  </div>
+  <div style="display:flex;gap:.75rem;align-items:center" id="nav-btns">
+    <a href="/login.html" class="btn btn-ghost btn-sm">Log In</a>
+    <a href="/register.html" class="btn btn-primary btn-sm">Get Started Free</a>
+    <a href="/about-me.html" class="btn btn-ghost btn-sm">About Me</a>
+    <a href="/about-website.html" class="btn btn-ghost btn-sm">About Website</a>
+</div>
+</nav>
+
+<!-- Hero -->
+<section style="padding:6rem 2rem 3rem;text-align:center">
+  <div class="container">
+    <div class="hero-badge">✨ AI-Powered Career Intelligence Platform</div>
+    <h1 style="font-size:3.25rem;font-weight:900;line-height:1.1;margin-bottom:1.5rem">
+      <span class="gradient-text">Discover Your Skill Gaps.</span><br>
+      Build Your Career Roadmap.<br>
+      <span style="color:var(--accent)">Land Your Dream Job.</span>
+    </h1>
+    <p style="font-size:1.15rem;color:var(--text-muted);max-width:620px;margin:0 auto 2.5rem;line-height:1.75">
+      Take an adaptive skill assessment, get a personalized learning roadmap powered by AI, and chat with your AI Career Mentor — all in one platform.
+    </p>
+    <div class="landing-hero-btns">
+      <a href="/register.html" class="btn btn-primary btn-lg">🚀 Start Your Assessment</a>
+      <a href="/login.html"    class="btn btn-outline btn-lg">Sign In</a>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="val">10+</div><div class="lbl">Career Paths</div></div>
+      <div class="stat-item"><div class="val">25+</div><div class="lbl">Skills Tracked</div></div>
+      <div class="stat-item"><div class="val">100+</div><div class="lbl">Adaptive Questions</div></div>
+      <div class="stat-item"><div class="val">AI</div><div class="lbl">Powered Mentor</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Careers marquee -->
+<div class="careers-marquee">
+  <div class="careers-track">
+    <span class="career-pill">🖥️ Full Stack Developer</span>
+    <span class="career-pill">🎨 Frontend Developer</span>
+    <span class="career-pill">⚙️ Backend Developer</span>
+    <span class="career-pill">📊 Data Scientist</span>
+    <span class="career-pill">🤖 AI/ML Engineer</span>
+    <span class="career-pill">🔒 Cybersecurity Analyst</span>
+    <span class="career-pill">☁️ Cloud Engineer</span>
+    <span class="career-pill">⛓️ Blockchain Developer</span>
+    <span class="career-pill">💻 Software Developer</span>
+    <span class="career-pill">📈 Data Analyst</span>
+    <!-- duplicate for seamless loop -->
+    <span class="career-pill">🖥️ Full Stack Developer</span>
+    <span class="career-pill">🎨 Frontend Developer</span>
+    <span class="career-pill">⚙️ Backend Developer</span>
+    <span class="career-pill">📊 Data Scientist</span>
+    <span class="career-pill">🤖 AI/ML Engineer</span>
+    <span class="career-pill">🔒 Cybersecurity Analyst</span>
+    <span class="career-pill">☁️ Cloud Engineer</span>
+    <span class="career-pill">⛓️ Blockchain Developer</span>
+    <span class="career-pill">💻 Software Developer</span>
+    <span class="career-pill">📈 Data Analyst</span>
+  </div>
+</div>
+
+<!-- Features -->
+<section style="padding:5rem 2rem">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything You Need to Navigate Your Career</h2>
+      <p class="section-desc">From skill assessment to personalized roadmaps and AI mentoring — a complete career intelligence system.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Adaptive Skill Assessment</div>
+        <p class="feature-desc">Questions dynamically adjust difficulty based on your answers — harder when you're doing well, easier when you need it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Precise Skill Gap Analysis</div>
+        <p class="feature-desc">See exactly where you stand vs. industry requirements. Every gap measured numerically so you know exactly what to work on.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <div class="feature-title">AI-Generated Roadmap</div>
+        <p class="feature-desc">Your personal learning roadmap is generated by AI using your specific skill gaps — not a generic one-size-fits-all plan.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI Career Mentor</div>
+        <p class="feature-desc">Chat with an AI mentor that knows your skills, your gaps, and your goals. Ask anything — from "what next?" to interview prep.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title">Progress Tracking</div>
+        <p class="feature-desc">Mark topics complete, track phase progress, and watch your career readiness score climb as you learn.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-title">Adaptive Reassessment</div>
+        <p class="feature-desc">Retake the assessment after learning. Your roadmap adapts to your new skill levels — never repeating what you've already mastered.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section style="background:var(--bg-card);padding:5rem 2rem">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title">Your Path to Career Readiness</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h4>Create Your Profile</h4>
+        <p style="color:var(--text-muted);font-size:.875rem;margin-top:.5rem">Tell us your education, experience, and target career goal.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h4>Take the Assessment</h4>
+        <p style="color:var(--text-muted);font-size:.875rem;margin-top:.5rem">Complete an adaptive assessment tailored to your chosen career path.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h4>See Your Skill Gaps</h4>
+        <p style="color:var(--text-muted);font-size:.875rem;margin-top:.5rem">View exactly which skills need work and by how much compared to job requirements.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h4>Follow Your Roadmap</h4>
+        <p style="color:var(--text-muted);font-size:.875rem;margin-top:.5rem">Learn with your AI-generated personalized roadmap and chat with your mentor.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="section-label">Get Started Today</div>
+  <h2 class="section-title" style="margin-bottom:.75rem">Ready to Map Your Career Path?</h2>
+  <p style="color:var(--text-muted);margin-bottom:2rem">Join and get a complete skill analysis + personalized roadmap in under 10 minutes.</p>
+  <a href="/register.html" class="btn btn-primary btn-lg">🚀 Start For Free — No Credit Card</a>
+</div>
+
+<footer>
+  <div style="display:flex;align-items:center;justify-content:center;gap:.75rem;margin-bottom:.75rem">
+    <span style="font-size:1.25rem">🎯</span>
+    <span style="font-weight:700">AI Career Navigator</span>
+  </div>
+  <p>AI-Powered Adaptive Skill Gap Analyser &amp; Personalized Career Roadmap Platform</p>
+</footer>
+
+<script src="/js/api.js"></script>
+<script>
+  // Redirect if already logged in
+  redirectIfAuth();
+</script>
+</body>
+</html>

@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Career Mentor — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Rich Markdown Renderer (ChatGPT/Gemini style) ── */
+.msg-bubble { line-height:1.75; }
+.msg-bubble.assistant-bubble { max-width:100%; }
+
+/* Headings inside AI response */
+.md-h1,.md-h2,.md-h3 { font-weight:800; margin:1rem 0 .4rem; line-height:1.3; }
+.md-h1 { font-size:1.25rem; color:var(--primary-light); border-bottom:1px solid var(--border); padding-bottom:.35rem; }
+.md-h2 { font-size:1.1rem;  color:var(--text); }
+.md-h3 { font-size:1rem;    color:var(--text); }
+
+/* Bold / italic */
+.md-bold   { font-weight:700; color:var(--text); }
+.md-italic { font-style:italic; }
+
+/* Lists */
+.md-ul,.md-ol { margin:.5rem 0 .5rem 1.25rem; display:flex; flex-direction:column; gap:.25rem; }
+.md-ul li { list-style:disc; }
+.md-ol li { list-style:decimal; }
+.md-ul li,.md-ol li { font-size:.9rem; line-height:1.65; color:var(--text); }
+.md-ul li strong,.md-ol li strong { color:var(--primary-light); }
+
+/* Code block */
+.md-code-block {
+  background:#0D1B2A; border:1px solid var(--border);
+  border-radius:8px; padding:1rem 1.25rem; margin:.75rem 0;
+  overflow-x:auto; font-family:'Courier New',monospace; font-size:.82rem;
+  line-height:1.6; color:#E2E8F0; position:relative;
+}
+.md-code-label {
+  font-size:.65rem; font-weight:700; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:.08em;
+  margin-bottom:.5rem; display:block;
+}
+.md-code-copy {
+  position:absolute; top:.5rem; right:.5rem;
+  background:var(--bg-hover); border:1px solid var(--border);
+  border-radius:5px; padding:.2rem .5rem; font-size:.7rem;
+  color:var(--text-muted); cursor:pointer; font-family:var(--font);
+}
+.md-code-copy:hover { background:var(--border-light); }
+
+/* Inline code */
+.md-inline-code {
+  background:rgba(79,70,229,.18); color:var(--primary-light);
+  border-radius:4px; padding:.1rem .4rem;
+  font-family:'Courier New',monospace; font-size:.85em;
+}
+
+/* Flow diagram (arrow text) */
+.md-flow {
+  background:rgba(6,182,212,.07); border:1px solid rgba(6,182,212,.25);
+  border-radius:10px; padding:1rem 1.25rem; margin:.75rem 0;
+  font-family:'Courier New',monospace; font-size:.82rem; line-height:1.9;
+  color:var(--text); overflow-x:auto; white-space:pre-wrap;
+}
+
+/* Blockquote / tip */
+.md-blockquote {
+  border-left:3px solid var(--primary); background:rgba(79,70,229,.08);
+  border-radius:0 8px 8px 0; padding:.75rem 1rem; margin:.75rem 0;
+  color:var(--text-muted); font-size:.9rem; font-style:italic;
+}
+.md-tip {
+  background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.25);
+  border-radius:8px; padding:.75rem 1rem; margin:.75rem 0;
+  font-size:.875rem; color:var(--text);
+}
+.md-tip-label { font-weight:700; color:var(--success); margin-bottom:.3rem; }
+
+/* Horizontal rule */
+.md-hr { border:none; border-top:1px solid var(--border); margin:1rem 0; }
+
+/* Table */
+.md-table-wrap { overflow-x:auto; margin:.75rem 0; border-radius:8px; }
+.md-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.md-table th { background:var(--bg-hover); padding:.5rem .875rem; text-align:left; font-weight:700; font-size:.78rem; color:var(--text-muted); }
+.md-table td { padding:.5rem .875rem; border-bottom:1px solid var(--border); }
+.md-table tr:last-child td { border-bottom:none; }
+
+/* Paragraph spacing */
+.md-para { margin:.45rem 0; font-size:.9rem; line-height:1.75; }
+
+/* Emoji highlight */
+.md-emoji-line { display:flex; align-items:flex-start; gap:.5rem; margin:.3rem 0; font-size:.9rem; }
+
+/* ── Chat Layout ── */
+.chat-wrapper {
+  display:flex;
+  gap:0;
+  height:calc(100vh - 130px);
+  overflow:hidden;
+}
+.history-panel {
+  width:260px; min-width:260px;
+  background:var(--bg-card);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transition:width .3s ease;
+}
+.history-panel.collapsed { width:0; min-width:0; overflow:hidden; }
+.history-header {
+  padding:1rem; border-bottom:1px solid var(--border);
+  font-weight:700; font-size:.85rem;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.history-scroll { flex:1; overflow-y:auto; padding:.5rem; }
+.history-item {
+  padding:.6rem .75rem; border-radius:8px; cursor:pointer;
+  margin-bottom:.25rem; border:1px solid transparent;
+  transition:all .15s;
+}
+.history-item:hover { background:var(--bg-hover); border-color:var(--border); }
+.history-item.active { background:rgba(79,70,229,.12); border-color:var(--primary); }
+.history-item-title { font-size:.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.history-item-date  { font-size:.7rem; color:var(--text-muted); margin-top:.15rem; }
+
+.chat-main { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+
+.chat-messages {
+  flex:1; overflow-y:auto; padding:1.5rem;
+  display:flex; flex-direction:column; gap:1.5rem;
+  background:var(--bg);
+}
+.chat-messages::-webkit-scrollbar { width:5px; }
+.chat-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+.message { display:flex; gap:.875rem; max-width:88%; animation:fadeUp .25s ease; }
+.message.user      { align-self:flex-end; flex-direction:row-reverse; }
+.message.assistant { align-self:flex-start; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.msg-avatar {
+  width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+}
+.message.user      .msg-avatar { background:linear-gradient(135deg,var(--primary),var(--accent)); font-weight:700; }
+.message.assistant .msg-avatar { background:linear-gradient(135deg,#1a2744,#2d3f6b); border:1px solid var(--border); font-size:1.15rem; }
+
+.msg-bubble {
+  padding:.875rem 1.125rem; border-radius:16px;
+  font-size:.9rem; line-height:1.7; word-break:break-word;
+}
+.message.user .msg-bubble {
+  background:var(--primary); color:#fff;
+  border-bottom-right-radius:4px;
+}
+.message.assistant .msg-bubble {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-bottom-left-radius:4px; color:var(--text);
+  max-width:100%;
+}
+.msg-meta { font-size:.7rem; color:var(--text-dim); margin-top:.35rem; }
+.message.user .msg-meta { text-align:right; }
+
+/* Typing dots */
+.typing-dots { display:flex; gap:4px; padding:.25rem 0; align-items:center; }
+.typing-dot  { width:7px; height:7px; background:var(--text-muted); border-radius:50%; animation:bounce 1.2s ease infinite; }
+.typing-dot:nth-child(2) { animation-delay:.2s; }
+.typing-dot:nth-child(3) { animation-delay:.4s; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-7px)} }
+
+/* Input area */
+.chat-input-area {
+  background:var(--bg-card); border-top:1px solid var(--border);
+  padding:1rem 1.25rem;
+}
+.prompt-chips { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.75rem; }
+.prompt-chip {
+  background:var(--bg-hover); border:1px solid var(--border);
+  border-radius:100px; padding:.3rem .75rem;
+  font-size:.75rem; color:var(--text-muted); cursor:pointer;
+  transition:all .15s; white-space:nowrap; font-family:var(--font);
+}
+.prompt-chip:hover { border-color:var(--primary-light); color:var(--primary-light); background:rgba(79,70,229,.1); }
+
+.input-row { display:flex; gap:.75rem; align-items:flex-end; }
+.chat-textarea {
+  flex:1; background:var(--bg-input); border:1.5px solid var(--border);
+  border-radius:12px; color:var(--text); font-size:.9rem;
+  font-family:var(--font); padding:.7rem 1rem; resize:none;
+  outline:none; min-height:46px; max-height:140px;
+  transition:border-color .2s; line-height:1.5;
+}
+.chat-textarea:focus { border-color:var(--primary); }
+.chat-textarea::placeholder { color:var(--text-dim); }
+
+.send-btn {
+  width:46px; height:46px; border-radius:12px; border:none;
+  background:var(--primary); color:#fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; transition:all .2s; flex-shrink:0;
+}
+.send-btn:hover:not(:disabled) { background:var(--primary-dark); transform:scale(1.05); }
+.send-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+.ai-status-bar {
+  font-size:.72rem; color:var(--warning); background:rgba(245,158,11,.08);
+  border:1px solid rgba(245,158,11,.25); border-radius:6px;
+  padding:.35rem .75rem; margin-bottom:.5rem; display:none;
+}
+
+@media(max-width:768px){
+  .history-panel { display:none; }
+  .message { max-width:95%; }
+  .chat-messages { padding:1rem; }
+}
+</style>
+</head>
+<body>
+<div class="page-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content" style="overflow:hidden">
+    <!-- Header -->
+    <header class="page-header" style="padding:.75rem 1.25rem">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button class="hamburger" id="hamburger">☰</button>
+        <button id="toggle-history-btn" class="btn btn-ghost btn-sm" onclick="toggleHistory()" title="Toggle history">☰</button>
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🤖</div>
+        <div>
+          <div style="font-weight:800;font-size:1rem">AI Career Mentor</div>
+          <div style="font-size:.72rem;color:var(--text-muted)" id="mentor-subtitle">Personalized career guidance</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <div id="provider-badge" style="font-size:.7rem;padding:.2rem .6rem;border-radius:100px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#34D399;display:none"></div>
+        <button class="btn btn-ghost btn-sm" onclick="newChat()">✏ New Chat</button>
+      </div>
+    </header>
+
+    <div class="chat-wrapper">
+      <!-- History sidebar -->
+      <div class="history-panel" id="history-panel">
+        <div class="history-header">
+          <span>💬 History</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadHistory()" style="font-size:.7rem">↺ Refresh</button>
+        </div>
+        <div class="history-scroll" id="history-list">
+          <div class="text-muted text-sm" style="padding:.75rem .5rem;text-align:center">Loading...</div>
+        </div>
+        <div style="padding:.75rem;border-top:1px solid var(--border)">
+          <button class="btn btn-outline btn-sm btn-full" onclick="newChat()">✏ New Conversation</button>
+        </div>
+      </div>
+
+      <!-- Main chat area -->
+      <div class="chat-main">
+        <div class="chat-messages" id="chat-messages">
+          <!-- Welcome message rendered by JS -->
+        </div>
+
+        <div class="chat-input-area">
+          <!-- AI status bar -->
+          <div class="ai-status-bar" id="ai-status"></div>
+
+          <!-- Prompt chips -->
+          <div class="prompt-chips" id="prompt-chips">
+            <button class="prompt-chip" onclick="useChip(this)">What should I learn next?</button>
+            <button class="prompt-chip" onclick="useChip(this)">Create a 7-day study plan for my weakest skill</button>
+            <button class="prompt-chip" onclick="useChip(this)">Draw a flow diagram of my learning path</button>
+            <button class="prompt-chip" onclick="useChip(this)">How do I prepare for interviews?</button>
+            <button class="prompt-chip" onclick="useChip(this)">Give me a project idea to practice React</button>
+            <button class="prompt-chip" onclick="useChip(this)">Explain REST APIs with a code example</button>
+            <button class="prompt-chip" onclick="useChip(this)">What are the best free resources for Python?</button>
+            <button class="prompt-chip" onclick="useChip(this)">Compare SQL vs NoSQL with examples</button>
+          </div>
+
+          <div class="input-row">
+            <textarea class="chat-textarea" id="chat-input"
+              placeholder="Ask anything — career advice, code help, study plans, diagrams, interviews..."
+              rows="1" onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="send()">➤</button>
+          </div>
+          <div style="font-size:.68rem;color:var(--text-dim);margin-top:.35rem">
+            Enter to send · Shift+Enter for new line · Supports markdown, code, diagrams
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+if (!requireAuth()) throw new Error('not auth');
+injectSidebar('mentor');
+
+// ── State ───────────────────────────────────────────────────────────────────
+let sessionId     = null;
+let sending       = false;
+let historyOpen   = false;
+let userInitial   = 'U';
+let userName      = 'You';
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Show provider badge
+  const provider = 'Gemini'; // Update if using different provider
+  const badge = document.getElementById('provider-badge');
+  badge.textContent = '⚡ ' + provider;
+  badge.style.display = 'inline-flex';
+
+  // Load user context
+  try {
+    const p = await api.getProfile();
+    const u = p.user;
+    userName    = u.name || 'You';
+    userInitial = (u.name || 'U')[0].toUpperCase();
+    const career = u.careerGoal?.title || 'your target career';
+    document.getElementById('mentor-subtitle').textContent = `Helping you become a ${career}`;
+
+    addMessage('assistant', buildWelcome(u.name, career, u.careerGoal));
+  } catch {
+    addMessage('assistant', buildWelcome('there', 'your target career', null));
+  }
+
+  // Load history in background
+  loadHistory();
+
+  // Prefill from URL ?q=
+  const q = new URLSearchParams(location.search).get('q');
+  if (q) {
+    document.getElementById('chat-input').value = q;
+    document.getElementById('prompt-chips').style.display = 'none';
+  }
+})();
+
+function buildWelcome(name, career, careerObj) {
+  return `👋 **Hello${name ? ', ' + name : ''}!** I'm your AI Career Mentor.
+
+I'm here to help you become a **${career}** with personalized guidance. I know your skill levels and gaps, so my advice is tailored specifically to you.
+
+**Here's what I can help you with:**
+
+• 📚 **Learning paths** — What to study next based on your gaps
+• 🗺️ **Study plans** — Day-by-day or week-by-week schedules
+• 💻 **Code examples** — Explanations with working code
+• 📊 **Flow diagrams** — Visual learning paths and architectures
+• 🎯 **Interview prep** — Questions, answers, and strategies
+• 🚀 **Project ideas** — Hands-on projects to build your portfolio
+• 💬 **Casual chat** — Just talk, I'm here!
+
+**What would you like to work on today?**`;
+}
+
+// ── AI output normalizer ─────────────────────────────────────────────────────
+// LLM responses (especially from cheaper/faster providers like Groq) can
+// drift slightly from the exact markdown shapes the renderer below expects.
+// This pass fixes the two most common drift patterns BEFORE parsing, without
+// touching output that's already clean:
+//   1. Blank lines accidentally inserted between markdown table rows
+//      (breaks the table-collection loop in renderMarkdown).
+//   2. Known section titles ("Overview", "Next Steps", etc.) emitted as
+//      bare text instead of "## Heading" (breaks heading detection).
+// This is a safety net, not a substitute for a good system prompt — fix
+// the prompt first, keep this as defense-in-depth against model drift.
+function normalizeAIMarkdown(text) {
+  if (!text) return '';
+
+  let lines = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const out = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.trim() === '') {
+      const prev = out[out.length - 1];
+      let next = null;
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim() !== '') { next = lines[j]; break; }
+      }
+      const prevIsRow = prev && prev.trim().startsWith('|');
+      const nextIsRow = next && next.trim().startsWith('|');
+      if (prevIsRow && nextIsRow) continue; // drop blank line inside a table
+    }
+
+    out.push(line);
+  }
+
+  let joined = out.join('\n');
+
+  // Promote a whitelist of known section titles to real "## " headings
+  // if the model forgot the markdown marker. Deliberately narrow (not a
+  // generic heuristic) so ordinary prose sentences are never misdetected.
+  const knownSections = /^(Overview|What You Should Learn.*|Practice.*|Projects?.*|Resources?|Next Steps|Quick.*Tips|Final Thought|Daily Practice Routine.*)$/i;
+  joined = joined.split('\n').map(line => {
+    const t = line.trim();
+    if (t && knownSections.test(t) && !/^#{1,3}\s/.test(t)) {
+      return `## ${t}`;
+    }
+    return line;
+  }).join('\n');
+
+  return joined;
+}
+
+// ── Markdown → HTML renderer ─────────────────────────────────────────────────
+function renderMarkdown(text) {
+  if (!text) return '';
+
+  text = normalizeAIMarkdown(text);
+
+  text = String(text)
+    .replace(/\\<br\s*\/?>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\\\*\\\*/g, '**')
+    .replace(/\\\*/g, '*')
+    .replace(/\\_/g, '_')
+    .replace(/\\#/g, '#')
+    .replace(/\\\|/g, '|')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  let inUL = false, inOL = false, inCodeBlock = false;
+  let codeLang = '', codeLines = [];
+
+  function closeLists() {
+    if (inUL) { html += '</ul>'; inUL = false; }
+    if (inOL) { html += '</ol>'; inOL = false; }
+  }
+
+  function isTableSeparator(line) {
+    const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+    return cells.length >= 2 && cells.every(cell => /^\s*:?-{3,}:?\s*$/.test(cell));
+  }
+
+  function parseTableRow(line) {
+    let clean = line.trim();
+    if (clean.startsWith('|')) clean = clean.slice(1);
+    if (clean.endsWith('|')) clean = clean.slice(0, -1);
+    return clean.split('|').map(cell => cell.trim());
+  }
+
+  function renderTable(tableLines) {
+    if (tableLines.length < 2) return '';
+    const header = parseTableRow(tableLines[0]);
+    let separatorIndex = -1;
+
+    for (let n = 1; n < tableLines.length; n++) {
+      if (isTableSeparator(tableLines[n])) {
+        separatorIndex = n;
+        break;
+      }
+    }
+    if (separatorIndex === -1) return '';
+
+    let tableHtml = '<div class="md-table-wrap"><table class="md-table"><thead><tr>';
+    tableHtml += header.map(cell => `<th>${inlineRender(cell)}</th>`).join('');
+    tableHtml += '</tr></thead><tbody>';
+
+    tableLines.slice(separatorIndex + 1).forEach(line => {
+      const cells = parseTableRow(line);
+      tableHtml += '<tr>';
+      for (let c = 0; c < header.length; c++) {
+        tableHtml += `<td>${inlineRender(cells[c] || '')}</td>`;
+      }
+      tableHtml += '</tr>';
+    });
+
+    tableHtml += '</tbody></table></div>';
+    return tableHtml;
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (/^\s*```/.test(line)) {
+      if (!inCodeBlock) {
+        closeLists();
+        inCodeBlock = true;
+        codeLang = line.replace(/^\s*```/, '').trim() || 'code';
+        codeLines = [];
+      } else {
+        inCodeBlock = false;
+        const code = escHtml(codeLines.join('\n'));
+        const id = 'code-' + Math.random().toString(36).slice(2, 9);
+
+        html += `<div class="md-code-block" id="${id}">
+          <span class="md-code-label">${escHtml(codeLang)}</span>
+          <button class="md-code-copy" onclick="copyCode('${id}')">Copy</button>
+          <pre style="margin:0;white-space:pre-wrap">${code}</pre>
+        </div>`;
+
+        codeLang = '';
+        codeLines = [];
+      }
+      i++;
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      i++;
+      continue;
+    }
+
+    if (line.trim() === '') {
+      closeLists();
+      i++;
+      continue;
+    }
+
+    // Table entry: tolerate a single blank line before the separator row
+    // as an independent safety net, in case normalizeAIMarkdown's own
+    // blank-line collapse was ever bypassed (e.g. a future code path
+    // calls renderMarkdown directly on unnormalized text).
+    if (line.trim().startsWith('|')) {
+      let sepIdx = i + 1;
+      if (sepIdx < lines.length && lines[sepIdx].trim() === '') sepIdx++;
+      const looksLikeTable = sepIdx < lines.length && isTableSeparator(lines[sepIdx]);
+
+      if (looksLikeTable) {
+        closeLists();
+        const tableLines = [line];
+        let j = sepIdx;
+        while (j < lines.length) {
+          if (lines[j].trim() === '') {
+            // only skip a blank line if a table row follows it
+            const k = j + 1;
+            if (k < lines.length && lines[k].trim().startsWith('|')) { j++; continue; }
+            break;
+          }
+          if (!lines[j].trim().startsWith('|')) break;
+          tableLines.push(lines[j]);
+          j++;
+        }
+        html += renderTable(tableLines);
+        i = j;
+        continue;
+      }
+
+      // Never let a raw, unparseable "| ... |" line reach the user as
+      // literal pipe characters — render its cell text as plain content
+      // instead. This is the last-resort guarantee against showing "|".
+      closeLists();
+      const cells = parseTableRow(line);
+      html += `<div class="md-para">${cells.map(c => inlineRender(c)).filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>`;
+      i++;
+      continue;
+    }
+
+    if (/^\s*###\s+/.test(line)) {
+      closeLists();
+      html += `<div class="md-h3">${inlineRender(line.replace(/^\s*###\s+/, ''))}</div>`;
+      i++;
+      continue;
+    }
+
+    if (/^\s*##\s+/.test(line)) {
+      closeLists();
+      html += `<div class="md-h2">${inlineRender(line.replace(/^\s*##\s+/, ''))}</div>`;
+      i++;
+      continue;
+    }
+
+    if (/^\s*#\s+/.test(line)) {
+      closeLists();
+      html += `<div class="md-h1">${inlineRender(line.replace(/^\s*#\s+/, ''))}</div>`;
+      i++;
+      continue;
+    }
+
+    if (/^\s*(\*\s*){3,}$/.test(line) ||
+        /^\s*(-\s*){3,}$/.test(line) ||
+        /^\s*_{3,}\s*$/.test(line)) {
+      closeLists();
+      html += '<hr class="md-hr">';
+      i++;
+      continue;
+    }
+
+    if (/^\s*>\s?/.test(line)) {
+      closeLists();
+      html += `<div class="md-blockquote">${inlineRender(line.replace(/^\s*>\s?/, ''))}</div>`;
+      i++;
+      continue;
+    }
+
+    if (/→|->|=>/.test(line) && line.trim()) {
+      closeLists();
+      const flowLines = [];
+      while (i < lines.length &&
+             (/→|->|=>/.test(lines[i]) || /^[│┌└├┤┬┴┼]/.test(lines[i]))) {
+        flowLines.push(lines[i]);
+        i++;
+        if (flowLines.length >= 30) break;
+      }
+      html += `<div class="md-flow">${escHtml(flowLines.join('\n'))}</div>`;
+      continue;
+    }
+
+    if (/^\s*[-*+•]\s+/.test(line)) {
+      if (!inUL) {
+        closeLists();
+        html += '<ul class="md-ul">';
+        inUL = true;
+      }
+      html += `<li>${inlineRender(line.replace(/^\s*[-*+•]\s+/, ''))}</li>`;
+      i++;
+      continue;
+    }
+
+    if (/^\s*\d+[\.\)]\s+/.test(line)) {
+      if (!inOL) {
+        closeLists();
+        html += '<ol class="md-ol">';
+        inOL = true;
+      }
+      html += `<li>${inlineRender(line.replace(/^\s*\d+[\.\)]\s+/, ''))}</li>`;
+      i++;
+      continue;
+    }
+
+    if (/^(💡|⚡|✅|🎯|🔥|📌)\s*/.test(line.trim()) ||
+        /^(Pro Tip|Note|Tip):/i.test(line.trim())) {
+      closeLists();
+      let content = line.trim();
+      let icon = '💡';
+      const iconMatch = content.match(/^(💡|⚡|✅|🎯|🔥|📌)/);
+      if (iconMatch) {
+        icon = iconMatch[1];
+        content = content.slice(icon.length).trim();
+      }
+      content = content.replace(/^(Pro Tip|Note|Tip):\s*/i, '');
+      html += `<div class="md-tip">
+        <div class="md-tip-label">${icon} Pro Tip</div>
+        ${inlineRender(content)}
+      </div>`;
+      i++;
+      continue;
+    }
+
+    closeLists();
+    const paragraphLines = [line];
+    i++;
+
+    while (i < lines.length &&
+           lines[i].trim() !== '' &&
+           !/^\s*(#{1,3})\s+/.test(lines[i]) &&
+           !/^\s*[-*+•]\s+/.test(lines[i]) &&
+           !/^\s*\d+[\.\)]\s+/.test(lines[i]) &&
+           !/^\s*>\s?/.test(lines[i]) &&
+           !/^\s*```/.test(lines[i]) &&
+           !lines[i].trim().startsWith('|')) {
+      paragraphLines.push(lines[i]);
+      i++;
+    }
+
+    html += `<div class="md-para">${inlineRender(paragraphLines.join(' '))}</div>`;
+  }
+
+  closeLists();
+  return html;
+}
+
+function inlineRender(text) {
+  if (!text) return '';
+
+  let value = String(text)
+    .replace(/\\<br\s*\/?>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\\\*\\\*/g, '**')
+    .replace(/\\\*/g, '*')
+    .replace(/\\_/g, '_')
+    .replace(/\\#/g, '#')
+    .replace(/\\\|/g, '|');
+
+  value = value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  value = value.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+
+  value = value.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:var(--primary-light)">$1</a>'
+  );
+
+  value = value.replace(
+    /\*\*\*(.+?)\*\*\*/g,
+    '<strong class="md-bold"><em class="md-italic">$1</em></strong>'
+  );
+
+  value = value.replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong class="md-bold">$1</strong>'
+  );
+
+  value = value.replace(
+    /(?<!\*)\*([^*]+)\*(?!\*)/g,
+    '<em class="md-italic">$1</em>'
+  );
+
+  value = value.replace(
+    /(?<!\w)_([^_]+)_(?!\w)/g,
+    '<em class="md-italic">$1</em>'
+  );
+
+  value = value.replace(/\n/g, '<br>');
+  return value;
+}
+
+// ── Message rendering ─────────────────────────────────────────────────────────
+function addMessage(role, content, time) {
+  const msgs   = document.getElementById('chat-messages');
+  const isUser = role === 'user';
+  const timeStr = time || new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  if (isUser) {
+    div.innerHTML = `
+      <div class="msg-avatar">${userInitial}</div>
+      <div>
+        <div class="msg-bubble">${escHtml(content).replace(/\n/g,'<br>')}</div>
+        <div class="msg-meta">${timeStr}</div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="msg-avatar">🤖</div>
+      <div style="min-width:0;flex:1">
+        <div class="msg-bubble assistant-bubble">${renderMarkdown(content)}</div>
+        <div class="msg-meta" style="display:flex;gap:.75rem;align-items:center">
+          <span>${timeStr}</span>
+          <button onclick="copyMsg(this)" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.7rem;font-family:var(--font)">📋 Copy</button>
+        </div>
+      </div>`;
+    // Store raw for copy
+    div.querySelector('.msg-bubble').dataset.raw = content;
+  }
+
+  msgs.appendChild(div);
+  setTimeout(() => msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' }), 50);
+  return div;
+}
+
+function copyMsg(btn) {
+  const raw = btn.closest('.message').querySelector('[data-raw]')?.dataset.raw || '';
+  navigator.clipboard.writeText(raw).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+  });
+}
+
+function addTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const div  = document.createElement('div');
+  div.className = 'message assistant';
+  div.id = 'typing-msg';
+  div.innerHTML = `
+    <div class="msg-avatar">🤖</div>
+    <div>
+      <div class="msg-bubble">
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() { document.getElementById('typing-msg')?.remove(); }
+
+// ── Send message ──────────────────────────────────────────────────────────────
+async function send() {
+  if (sending) return;
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('prompt-chips').style.display = 'none';
+  document.getElementById('ai-status').style.display = 'none';
+
+  addMessage('user', text);
+  addTyping();
+  sending = true;
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const res = await api.chat({ message: text, sessionId });
+    sessionId = res.sessionId;
+    removeTyping();
+    addMessage('assistant', res.message);
+
+    if (!res.aiAvailable) {
+      const statusBar = document.getElementById('ai-status');
+      statusBar.textContent = '⚠ AI not configured — add your API key to .env for full responses (Gemini is free: aistudio.google.com/apikey)';
+      statusBar.style.display = 'block';
+    }
+
+    // Refresh history
+    await loadHistory();
+  } catch (err) {
+    removeTyping();
+    addMessage('assistant', `⚠️ **Error:** ${err.message}\n\nPlease try again.`);
+  } finally {
+    sending = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function useChip(btn) {
+  document.getElementById('chat-input').value = btn.textContent.trim();
+  document.getElementById('chat-input').focus();
+}
+
+// ── New chat ──────────────────────────────────────────────────────────────────
+function newChat() {
+  sessionId = null;
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('prompt-chips').style.display = 'flex';
+  document.getElementById('ai-status').style.display = 'none';
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+  addMessage('assistant', buildWelcome(userName, 'your target career', null));
+  document.getElementById('chat-input').focus();
+}
+
+// ── Toggle history sidebar ────────────────────────────────────────────────────
+function toggleHistory() {
+  historyOpen = !historyOpen;
+  document.getElementById('history-panel').classList.toggle('collapsed', !historyOpen);
+}
+
+// ── Load past sessions ────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const res  = await api.getMentorHistory();
+    const list = document.getElementById('history-list');
+    if (!res.sessions?.length) {
+      list.innerHTML = '<div class="text-muted text-sm" style="padding:.75rem .5rem;text-align:center">No conversations yet</div>';
+      return;
+    }
+    list.innerHTML = res.sessions.map(s => `
+      <div class="history-item${s._id === sessionId ? ' active' : ''}" onclick="loadSession('${s._id}')">
+        <div class="history-item-title">${escHtml(s.title || 'Conversation')}</div>
+        <div class="history-item-date">${formatDate(s.updatedAt)}</div>
+      </div>`).join('');
+  } catch {}
+}
+
+async function loadSession(id) {
+  try {
+    const res = await api.getMentorSession(id);
+    sessionId = id;
+    const msgs = document.getElementById('chat-messages');
+    msgs.innerHTML = '';
+    document.getElementById('prompt-chips').style.display = 'none';
+
+    res.session.messages.forEach(m =>
+      addMessage(m.role, m.content, formatTime(m.timestamp))
+    );
+
+    document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.history-item[onclick="loadSession('${id}')"]`)?.classList.add('active');
+  } catch (err) {
+    showToast('Error loading session: ' + err.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

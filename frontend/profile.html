@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profile — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <header class="page-header">
+      <button class="hamburger" id="hamburger">☰</button>
+      <div>
+        <div class="page-title">My Profile</div>
+        <div class="page-subtitle">Manage your information and career goal</div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="save-btn" onclick="saveProfile()">💾 Save Changes</button>
+    </header>
+
+    <main class="page-body">
+      <div id="alert-box"></div>
+
+      <div class="grid-2" style="align-items:start">
+        <!-- Left: Personal Info + Career -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem">
+          <!-- Personal Info -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">👤 Personal Information</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input class="form-input" type="text" id="name" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Education</label>
+              <input class="form-input" type="text" id="education" placeholder="B.Tech CSE, BCA, B.Sc...">
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Experience Level</label>
+                <select class="form-select" id="experience">
+                  <option value="">Select level</option>
+                  <option value="fresher">Fresher / Student</option>
+                  <option value="junior">Junior (0–2 yrs)</option>
+                  <option value="mid">Mid-level (2–5 yrs)</option>
+                  <option value="senior">Senior (5+ yrs)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Preferred Job Type</label>
+                <select class="form-select" id="jobType">
+                  <option value="">Select type</option>
+                  <option value="full-time">Full-time</option>
+                  <option value="part-time">Part-time</option>
+                  <option value="freelance">Freelance</option>
+                  <option value="internship">Internship</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Career Goal -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🎯 Career Goal</div>
+              <span class="badge badge-blue" id="selected-career-badge" style="display:none">Selected</span>
+            </div>
+            <p class="text-muted text-sm" style="margin-bottom:1rem">
+              Select your target career. Your assessment and roadmap will be tailored to this goal.
+            </p>
+            <div class="career-grid" id="career-grid">
+              <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+                <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+                Loading careers...
+              </div>
+            </div>
+            <input type="hidden" id="selected-career-id">
+          </div>
+        </div>
+
+        <!-- Right: Skills -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💡 Your Skills</div>
+            <span class="text-muted text-sm" id="skills-count">0 selected</span>
+          </div>
+          <p class="text-muted text-sm" style="margin-bottom:1rem">
+            Select the skills you already have. This helps personalize your assessment.
+          </p>
+          <div class="skills-picker" id="skills-grid">
+            <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+              <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+              Loading skills...
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+if (!requireAuth()) throw new Error('not auth');
+injectSidebar('profile');
+
+let allSkills = [];
+let allCareers = [];
+let selectedSkillIds = new Set();
+let selectedCareerId = null;
+
+async function loadData() {
+  try {
+    const [profileRes, careersRes, skillsRes] = await Promise.all([
+      api.getProfile(),
+      api.getCareers(),
+      api.getSkills()
+    ]);
+
+    const user = profileRes.user;
+    allCareers = careersRes.careers;
+    allSkills  = skillsRes.skills;
+
+    // Fill personal info
+    document.getElementById('name').value       = user.name || '';
+    document.getElementById('education').value  = user.education || '';
+    document.getElementById('experience').value = user.experienceLevel || '';
+    document.getElementById('jobType').value     = user.preferredJobType || '';
+
+    // Set selected career
+    if (user.careerGoal) {
+      selectedCareerId = user.careerGoal._id || user.careerGoal;
+    }
+
+    // Set selected skills
+    if (user.skills?.length) {
+      user.skills.forEach(s => selectedSkillIds.add(s.skillId?._id || s.skillId));
+    }
+
+    renderCareers();
+    renderSkills();
+  } catch (err) {
+    document.getElementById('alert-box').innerHTML =
+      `<div class="alert alert-error">Failed to load profile: ${err.message}</div>`;
+  }
+}
+
+function renderCareers() {
+  const grid = document.getElementById('career-grid');
+  grid.innerHTML = allCareers.map(c => `
+    <div class="career-card${c._id === selectedCareerId ? ' selected' : ''}"
+         onclick="selectCareer('${c._id}', this)">
+      <div class="career-card-icon">${c.icon || '🎯'}</div>
+      <div class="career-card-title">${c.title}</div>
+      <div class="career-card-desc">${c.description || ''}</div>
+      ${c.jobDemand === 'very-high' ? '<div style="margin-top:.5rem"><span class="badge badge-green" style="font-size:.65rem">High Demand</span></div>' : ''}
+    </div>
+  `).join('');
+  if (selectedCareerId) {
+    document.getElementById('selected-career-id').value = selectedCareerId;
+    document.getElementById('selected-career-badge').style.display = 'inline-flex';
+  }
+}
+
+function selectCareer(id, el) {
+  selectedCareerId = id;
+  document.getElementById('selected-career-id').value = id;
+  document.querySelectorAll('.career-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('selected-career-badge').style.display = 'inline-flex';
+}
+
+function renderSkills() {
+  const grid = document.getElementById('skills-grid');
+  const byCategory = {};
+  allSkills.forEach(s => {
+    if (!byCategory[s.category]) byCategory[s.category] = [];
+    byCategory[s.category].push(s);
+  });
+
+  grid.innerHTML = Object.entries(byCategory).map(([cat, skills]) => `
+    <div style="grid-column:1/-1;font-size:.75rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-top:.5rem">${cat}</div>
+    ${skills.map(s => `
+      <div class="skill-chip${selectedSkillIds.has(s._id) ? ' selected' : ''}"
+           onclick="toggleSkill('${s._id}', this)">
+        <span class="skill-chip-icon">${s.icon || '💡'}</span>
+        <span>${s.name}</span>
+      </div>
+    `).join('')}
+  `).join('');
+  updateSkillCount();
+}
+
+function toggleSkill(id, el) {
+  if (selectedSkillIds.has(id)) {
+    selectedSkillIds.delete(id);
+    el.classList.remove('selected');
+  } else {
+    selectedSkillIds.add(id);
+    el.classList.add('selected');
+  }
+  updateSkillCount();
+}
+
+function updateSkillCount() {
+  document.getElementById('skills-count').textContent = `${selectedSkillIds.size} selected`;
+}
+
+async function saveProfile() {
+  const alertBox = document.getElementById('alert-box');
+  const btn = document.getElementById('save-btn');
+  alertBox.innerHTML = '';
+
+  const name = document.getElementById('name').value.trim();
+  if (!name) {
+    alertBox.innerHTML = '<div class="alert alert-error">Name is required.</div>';
+    return;
+  }
+
+  setLoading(btn, true, 'Saving...');
+
+  const payload = {
+    name,
+    education:        document.getElementById('education').value.trim(),
+    experienceLevel:  document.getElementById('experience').value,
+    preferredJobType: document.getElementById('jobType').value,
+    careerGoal:       selectedCareerId || null,
+    skills:           [...selectedSkillIds].map(id => ({ skillId: id, selfRating: 50 }))
+  };
+
+  try {
+    const res = await api.updateProfile(payload);
+    setUser(res.user);
+    alertBox.innerHTML = '<div class="alert alert-success">✓ Profile saved successfully!</div>';
+    setTimeout(() => alertBox.innerHTML = '', 3000);
+    showToast('Profile saved!', 'success');
+  } catch (err) {
+    alertBox.innerHTML = `<div class="alert alert-error">⚠ ${err.message}</div>`;
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
