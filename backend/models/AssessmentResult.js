@@ -6,6 +6,11 @@ const assessmentResultSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  journeyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CareerJourney',
+    default: null
+  },
   assessmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Assessment',

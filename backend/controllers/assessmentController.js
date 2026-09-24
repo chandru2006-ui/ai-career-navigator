@@ -3,6 +3,7 @@ const AssessmentResult = require('../models/AssessmentResult');
 const Career = require('../models/Career');
 const Question = require('../models/Question');
 const Skill = require('../models/Skill');
+const CareerJourney = require('../models/CareerJourney');
 const engine = require('../services/assessmentEngine');
 
 // POST /api/assessment/start
@@ -10,6 +11,7 @@ exports.startAssessment = async (req, res, next) => {
   try {
     const user = req.user;
     const careerId = req.body.careerId || user.careerGoal;
+    const journeyId = req.body.journeyId || null;
 
     if (!careerId) {
       return res.status(400).json({ success: false, message: 'Career goal required to start assessment.' });
@@ -28,14 +30,20 @@ exports.startAssessment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No questions available for this career. Please seed the database.' });
     }
 
-    // Mark any old in-progress as abandoned
-    await Assessment.updateMany(
-      { userId: user._id, careerId, status: 'in-progress' },
-      { $set: { status: 'abandoned' } }
-    );
+    // Mark any old in-progress as abandoned — ONLY for this specific journey
+    // CRITICAL: do NOT abandon assessments belonging to other journeys
+    const abandonQuery = { userId: user._id, careerId, status: 'in-progress' };
+    if (journeyId) {
+      abandonQuery.journeyId = journeyId;
+    } else {
+      // No journeyId: only abandon legacy records (also without journeyId)
+      abandonQuery.journeyId = null;
+    }
+    await Assessment.updateMany(abandonQuery, { $set: { status: 'abandoned' } });
 
     const assessment = await Assessment.create({
       userId: user._id,
+      journeyId: journeyId || null,
       careerId,
       totalQuestions: rawQuestions.length,
       currentDifficulty: 'easy',
@@ -48,6 +56,20 @@ exports.startAssessment = async (req, res, next) => {
         isCorrect: null
       }))
     });
+
+    // Update journey status to IN_PROGRESS
+    if (journeyId) {
+      await CareerJourney.findOneAndUpdate(
+        { _id: journeyId, userId: user._id },
+        { $set: { status: 'IN_PROGRESS', lastActivityAt: new Date() } }
+      );
+    } else {
+      // Try to find journey by careerId
+      await CareerJourney.findOneAndUpdate(
+        { userId: user._id, careerId, status: 'NOT_STARTED' },
+        { $set: { status: 'IN_PROGRESS', lastActivityAt: new Date() } }
+      );
+    }
 
     // Return first question
     const firstQ = rawQuestions[0];
@@ -204,12 +226,16 @@ exports.submitAssessment = async (req, res, next) => {
       ? Math.round(skillScores.reduce((sum, s) => sum + s.score, 0) / skillScores.length)
       : 0;
 
-    // Count previous attempts
-    const prevCount = await AssessmentResult.countDocuments({ userId: req.user._id, careerId: assessment.careerId });
+    // Count previous attempts scoped to this journey (not all user+career attempts)
+    const attemptQuery = assessment.journeyId
+      ? { userId: req.user._id, journeyId: assessment.journeyId }
+      : { userId: req.user._id, careerId: assessment.careerId, journeyId: null };
+    const prevCount = await AssessmentResult.countDocuments(attemptQuery);
 
-    // Save result
+    // Save result — link to journey if available
     const result = await AssessmentResult.create({
       userId: req.user._id,
+      journeyId: assessment.journeyId || null,
       assessmentId: assessment._id,
       careerId: assessment.careerId,
       skillScores,
@@ -223,6 +249,16 @@ exports.submitAssessment = async (req, res, next) => {
     assessment.status = 'completed';
     assessment.completedAt = new Date();
     await assessment.save();
+
+    // Update journey lastActivityAt
+    const journeyQuery = assessment.journeyId
+      ? { _id: assessment.journeyId, userId: req.user._id }
+      : { userId: req.user._id, careerId: assessment.careerId };
+
+    await CareerJourney.findOneAndUpdate(
+      journeyQuery,
+      { $set: { lastActivityAt: new Date(), status: 'IN_PROGRESS' } }
+    );
 
     res.json({
       success: true,
@@ -272,7 +308,32 @@ exports.getHistory = async (req, res, next) => {
 // GET /api/assessment/latest
 exports.getLatestResult = async (req, res, next) => {
   try {
-    const result = await AssessmentResult.findOne({ userId: req.user._id })
+    const userId = req.user._id;
+    const { careerId, journeyId } = req.query;
+
+    let query = { userId };
+
+    if (journeyId) {
+      // JOURNEY-AWARE: get latest result for this specific journey only
+      // Verify the journey belongs to the user first
+      const CareerJourney = require('../models/CareerJourney');
+      const journey = await CareerJourney.findOne({ _id: journeyId, userId });
+      if (!journey) {
+        return res.status(403).json({ success: false, message: 'Journey not found or access denied.' });
+      }
+      const jCareerId = journey.careerId;
+      query = {
+        userId,
+        $or: [
+          { journeyId: journey._id },
+          { careerId: jCareerId, journeyId: null }
+        ]
+      };
+    } else if (careerId) {
+      query.careerId = careerId;
+    }
+
+    const result = await AssessmentResult.findOne(query)
       .populate('careerId', 'title icon')
       .populate('skillScores.skillId', 'name category')
       .populate('skillGaps.skillId', 'name category')

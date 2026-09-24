@@ -6,6 +6,11 @@ const roadmapSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  journeyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CareerJourney',
+    default: null
+  },
   careerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Career',

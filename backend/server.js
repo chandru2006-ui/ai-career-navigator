@@ -32,6 +32,7 @@ app.use('/api/assessment', require('./routes/assessment'));
 app.use('/api/roadmap',    require('./routes/roadmap'));
 app.use('/api/mentor',     require('./routes/mentor'));
 app.use('/api/dashboard',  require('./routes/dashboard'));
+app.use('/api/journeys',   require('./routes/journey'));
 
 // Health check
 app.get('/api/health', (req, res) => {

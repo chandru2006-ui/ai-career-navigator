@@ -237,6 +237,21 @@ async function saveProfile() {
   try {
     const res = await api.updateProfile(payload);
     setUser(res.user);
+
+    // Auto-create career journey if a career was selected
+    if (selectedCareerId) {
+      const selectedSkillsPayload = [...selectedSkillIds].map(id => {
+        const skill = allSkills.find(s => s._id === id);
+        return { skillId: id, skillName: skill ? skill.name : '', selfRating: 50 };
+      });
+      try {
+        await api.createJourney({
+          careerId: selectedCareerId,
+          skills: selectedSkillsPayload
+        });
+      } catch(e) { /* non-fatal — journey may already exist */ }
+    }
+
     alertBox.innerHTML = '<div class="alert alert-success">✓ Profile saved successfully!</div>';
     setTimeout(() => alertBox.innerHTML = '', 3000);
     showToast('Profile saved!', 'success');

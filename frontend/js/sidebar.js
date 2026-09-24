@@ -8,6 +8,7 @@ function buildSidebar(activePage) {
     { page: 'results',   icon: '📈', label: 'Results & Gaps',   href: '/results.html' },
     { page: 'roadmap',   icon: '🗺️', label: 'My Roadmap',       href: '/roadmap.html' },
     { page: 'mentor',    icon: '🤖', label: 'AI Mentor',        href: '/mentor.html' },
+    { page: 'history',   icon: '📋', label: 'Career History',   href: '/history.html' },
   ];
 
   const navHTML = nav.map(item => `

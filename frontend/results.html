@@ -40,7 +40,8 @@ if (!requireAuth()) throw new Error('not auth');
 injectSidebar('results');
 
 const params = new URLSearchParams(location.search);
-const resultId = params.get('resultId');
+const resultId  = params.get('resultId');
+const journeyId = params.get('journeyId') || null;
 
 function profColor(p) {
   return {Expert:'#10B981',Advanced:'#06B6D4',Intermediate:'#F59E0B',Beginner:'#EF4444'}[p]||'#94A3B8';
@@ -64,7 +65,30 @@ function renderResults(result) {
   const scores = result.skillScores || [];
   const gaps   = result.skillGaps   || [];
 
+  // Journey context banner — shown when arriving from History page
+  const journeyBanner = (resultId && journeyId) ? `
+    <div style="background:rgba(79,70,229,.08);border:1px solid rgba(79,70,229,.25);border-radius:var(--radius-sm);
+      padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <div style="font-size:.875rem;color:var(--primary-light)">
+        📋 Assessment result for: <strong>${result.careerId?.title || 'Career Journey'}</strong>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <a href="/roadmap.html?journeyId=${journeyId}" class="btn btn-ghost btn-sm">🗺️ Roadmap</a>
+        <a href="/history.html" class="btn btn-ghost btn-sm">← History</a>
+      </div>
+    </div>
+  ` : resultId ? `
+    <div style="background:rgba(79,70,229,.08);border:1px solid rgba(79,70,229,.25);border-radius:var(--radius-sm);
+      padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <div style="font-size:.875rem;color:var(--primary-light)">
+        📋 Viewing specific assessment result for: <strong>${result.careerId?.title || 'Career'}</strong>
+      </div>
+      <a href="/history.html" class="btn btn-ghost btn-sm">← Career History</a>
+    </div>
+  ` : '';
+
   document.getElementById('results-content').innerHTML = `
+    ${journeyBanner}
     <!-- Summary row -->
     <div class="grid-4" style="margin-bottom:1.5rem">
       <div class="stat-card">
@@ -246,9 +270,15 @@ async function loadResults() {
   try {
     let result;
     if (resultId) {
+      // EXACT result by ID — comes from History page → always correct
       const data = await api.getResult(resultId);
       result = data.result;
+    } else if (journeyId) {
+      // journeyId without resultId: get the latest result for THIS journey
+      const data = await api.getLatestResult(null, journeyId);
+      result = data.result;
     } else {
+      // No context: get overall latest result for current career (existing flow)
       const data = await api.getLatestResult();
       result = data.result;
     }
@@ -259,7 +289,12 @@ async function loadResults() {
           <div class="empty-icon">📊</div>
           <h3>No Results Yet</h3>
           <p>Take your first assessment to see your skill analysis here.</p>
-          <a href="/assessment.html" class="btn btn-primary">Start Assessment</a>
+          <div style="display:flex;gap:.75rem;justify-content:center;margin-top:1rem">
+            <a href="/assessment.html${journeyId ? '?journeyId=' + journeyId : ''}" class="btn btn-primary">
+              Start Assessment
+            </a>
+            ${journeyId ? '<a href="/history.html" class="btn btn-ghost">← History</a>' : ''}
+          </div>
         </div>
       `;
       return;

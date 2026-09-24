@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Career History — AI Career Navigator</title>
+<link rel="stylesheet" href="/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Journey card */
+.journey-card {
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.5rem;
+  box-shadow:var(--shadow-sm);transition:border-color .2s ease,transform .2s ease;
+}
+.journey-card:hover { border-color:var(--primary-light);transform:translateY(-1px); }
+.journey-card.status-completed  { border-left:4px solid var(--success); }
+.journey-card.status-in_progress{ border-left:4px solid var(--primary); }
+.journey-card.status-not_started{ border-left:4px solid var(--border-light); }
+.journey-card.status-paused     { border-left:4px solid var(--warning); }
+
+.journey-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap; }
+.journey-icon   { font-size:2rem;margin-bottom:.25rem; }
+.journey-title  { font-size:1.1rem;font-weight:700;margin-bottom:.25rem; }
+.journey-dates  { font-size:.78rem;color:var(--text-muted); }
+
+.journey-progress-label { display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.4rem;color:var(--text-muted); }
+.journey-progress-label strong { color:var(--text); }
+
+.journey-meta { display:flex;gap:1.25rem;flex-wrap:wrap;font-size:.8rem;color:var(--text-muted);margin-top:.75rem; }
+.journey-meta-item { display:flex;align-items:center;gap:.35rem; }
+.journey-actions { display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem; }
+
+/* Modal */
+.modal-backdrop {
+  position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:500;display:flex;align-items:flex-start;justify-content:center;
+  padding:2rem 1rem;overflow-y:auto;
+}
+.modal-backdrop.hidden { display:none; }
+.modal {
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);width:100%;max-width:760px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);animation:modalIn .2s ease;margin:auto;
+}
+@keyframes modalIn { from{transform:translateY(-20px);opacity:0} to{transform:none;opacity:1} }
+.modal-header {
+  padding:1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+}
+.modal-body  { padding:1.5rem; }
+.modal-close { background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:.25rem; }
+.modal-close:hover { color:var(--text); }
+
+/* Detail sections */
+.detail-section { margin-bottom:1.5rem; }
+.detail-section-title {
+  font-size:.72rem;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);
+}
+.skill-tag {
+  display:inline-flex;align-items:center;gap:.35rem;
+  background:var(--bg-hover);border:1px solid var(--border);
+  border-radius:100px;padding:.25rem .65rem;
+  font-size:.78rem;color:var(--text-muted);margin:.2rem;
+}
+.assessment-attempt {
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:.875rem 1rem;margin-bottom:.5rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+}
+.phase-row {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.5rem 0;border-bottom:1px solid var(--border);gap:.75rem;font-size:.875rem;
+}
+.phase-row:last-child { border-bottom:none; }
+.phase-row-name { flex:1;font-weight:500; }
+
+/* Activity */
+.activity-item { display:flex;gap:1rem;align-items:flex-start;padding:.75rem 0;border-bottom:1px solid var(--border);font-size:.875rem; }
+.activity-item:last-child { border-bottom:none; }
+.activity-icon { width:36px;height:36px;border-radius:50%;background:var(--bg-hover);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0; }
+.activity-date { font-size:.75rem;color:var(--text-muted);margin-top:.15rem; }
+
+/* Badge variants */
+.badge-completed   { background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.3); }
+.badge-in-progress { background:rgba(79,70,229,.15);color:#818CF8;border:1px solid rgba(79,70,229,.3); }
+.badge-not-started { background:rgba(100,116,139,.15);color:#94A3B8;border:1px solid rgba(100,116,139,.3); }
+.badge-paused      { background:rgba(245,158,11,.15);color:#F59E0B;border:1px solid rgba(245,158,11,.3); }
+</style>
+</head>
+<body>
+<div class="page-layout">
+  <div id="sidebar-placeholder"></div>
+  <div class="main-content">
+    <header class="page-header">
+      <button class="hamburger" id="hamburger">☰</button>
+      <div>
+        <div class="page-title">📋 My Career History</div>
+        <div class="page-subtitle">Complete overview of your career journeys and progress</div>
+      </div>
+      <a href="/profile.html" class="btn btn-primary btn-sm">+ New Journey</a>
+    </header>
+
+    <main class="page-body" id="history-content">
+      <div id="loading-state" style="text-align:center;padding:4rem">
+        <div class="loading-spinner" style="width:36px;height:36px;border-width:3px;margin:0 auto 1rem"></div>
+        <p class="text-muted">Loading your career history...</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Journey Detail Modal -->
+<div class="modal-backdrop hidden" id="journey-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div id="modal-career-icon" style="font-size:2rem;margin-bottom:.25rem"></div>
+        <div id="modal-career-title" style="font-size:1.25rem;font-weight:700"></div>
+        <div id="modal-career-status" style="margin-top:.35rem"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div style="text-align:center;padding:2rem">
+        <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+        <p class="text-muted">Loading journey details...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+if (!requireAuth()) throw new Error('not auth');
+injectSidebar('history');
+
+// ─── Helpers ──────────────────────────────────────────────────
+function statusLabel(s) {
+  return {COMPLETED:'Completed',IN_PROGRESS:'In Progress',NOT_STARTED:'Not Started',PAUSED:'Paused'}[s]||s;
+}
+function statusClass(s) {
+  return {COMPLETED:'status-completed',IN_PROGRESS:'status-in_progress',NOT_STARTED:'status-not_started',PAUSED:'status-paused'}[s]||'';
+}
+function statusBadgeClass(s) {
+  return {COMPLETED:'badge-completed',IN_PROGRESS:'badge-in-progress',NOT_STARTED:'badge-not-started',PAUSED:'badge-paused'}[s]||'badge-gray';
+}
+function pbColor(pct) {
+  if(pct>=80) return 'green';
+  if(pct>=50) return '';
+  if(pct>=25) return 'yellow';
+  return 'red';
+}
+function relDate(d) {
+  if(!d) return '—';
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff/60000);
+  if(mins<1) return 'Just now';
+  if(mins<60) return `${mins}m ago`;
+  const hrs = Math.floor(mins/60);
+  if(hrs<24) return `${hrs}h ago`;
+  const days = Math.floor(hrs/24);
+  if(days===1) return 'Yesterday';
+  if(days<7) return `${days} days ago`;
+  return formatDate(d);
+}
+
+// ─── Render main history ──────────────────────────────────────
+function renderHistory(h) {
+  const u = h.user, s = h.summary, journeys = h.journeys||[], activity = h.recentActivity||[];
+
+  document.getElementById('history-content').innerHTML = `
+    <!-- Account Banner -->
+    <div class="card" style="margin-bottom:1.5rem;background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(6,182,212,.08));border-color:rgba(79,70,229,.3)">
+      <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;flex-shrink:0">
+          ${(u.name||'U')[0].toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:1.25rem;font-weight:700">${u.name}</div>
+          <div style="color:var(--text-muted);font-size:.875rem">${u.email}</div>
+          <div style="font-size:.8rem;color:var(--text-dim);margin-top:.2rem">
+            Member since ${formatDate(u.createdAt)}
+            ${u.careerGoal?` · Active: <span style="color:var(--primary-light);font-weight:600">${u.careerGoal.title}</span>`:''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:2rem;font-weight:900;color:var(--primary-light)">${s.overallLearningProgress}%</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Avg Journey Progress</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="stat-card"><div class="stat-icon blue">🚀</div><div><div class="stat-value">${s.totalJourneys}</div><div class="stat-label">Career Journeys</div></div></div>
+      <div class="stat-card"><div class="stat-icon cyan">📝</div><div><div class="stat-value">${s.totalAssessments}</div><div class="stat-label">Assessments</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🗺️</div><div><div class="stat-value">${s.totalRoadmaps}</div><div class="stat-label">Roadmaps</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">🤖</div><div><div class="stat-value">${s.totalMentorSessions}</div><div class="stat-label">Mentor Sessions</div></div></div>
+    </div>
+
+    <!-- 2-col layout -->
+    <div class="grid-2" style="align-items:start;margin-bottom:1.5rem">
+      <!-- LEFT: Career Journeys -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
+          <h3 style="font-size:1rem;font-weight:700">🚀 My Career Journeys</h3>
+          <a href="/profile.html" class="btn btn-primary btn-sm">+ Start New</a>
+        </div>
+        ${journeys.length===0 ? `
+          <div class="journey-card">
+            <div style="text-align:center;padding:2rem">
+              <div style="font-size:3rem;margin-bottom:1rem">🚀</div>
+              <h3 style="margin-bottom:.5rem">No Career Journeys Yet</h3>
+              <p class="text-muted" style="margin-bottom:1.25rem">Select a target career in your profile to start your first journey.</p>
+              <a href="/profile.html" class="btn btn-primary">Go to Profile →</a>
+            </div>
+          </div>
+        ` : journeys.map(j => renderJourneyCard(j)).join('')}
+      </div>
+
+      <!-- RIGHT: Mentor + Activity -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <!-- Mentor -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🤖 AI Mentor Activity</div>
+            <a href="/mentor.html" class="btn btn-ghost btn-sm">Open Mentor</a>
+          </div>
+          <div class="grid-2" style="gap:.75rem;margin-bottom:1rem">
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--primary-light)">${s.totalMentorSessions}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Sessions</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--accent)">${s.totalMentorMessages}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Messages</div>
+            </div>
+          </div>
+          ${s.lastMentorSession?`<div style="font-size:.8rem;color:var(--text-muted)">Last session: <span style="color:var(--text)">${relDate(s.lastMentorSession)}</span></div>`:'<div class="text-muted text-sm">No mentor sessions yet.</div>'}
+          <div style="margin-top:1rem"><a href="/mentor.html" class="btn btn-outline btn-sm btn-full">💬 Chat with AI Mentor</a></div>
+        </div>
+
+        <!-- Activity -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚡ Recent Activity</div></div>
+          ${activity.length===0
+            ? '<div class="text-muted text-sm" style="padding:.5rem 0">No recent activity yet.</div>'
+            : `<div>${activity.slice(0,8).map(a=>`
+                <div class="activity-item">
+                  <div class="activity-icon">${a.icon}</div>
+                  <div>
+                    <div style="font-size:.875rem">${a.description}</div>
+                    <div class="activity-date">${relDate(a.date)}</div>
+                  </div>
+                </div>`).join('')}</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderJourneyCard(j) {
+  const pct = j.progress||0;
+  const hasRoadmap = j.roadmap && j.roadmap.hasRoadmap;
+  const hasAssessment = j.assessmentCount>0;
+  const journeyId = j._id;
+  // Extract careerId string safely
+  const careerId = j.careerId && j.careerId._id ? j.careerId._id : j.careerId;
+
+  return `
+    <div class="journey-card ${statusClass(j.status)}">
+      <div class="journey-header">
+        <div>
+          <div class="journey-icon">${j.careerIcon||(j.careerId&&j.careerId.icon)||'🎯'}</div>
+          <div class="journey-title">${j.careerName||(j.careerId&&j.careerId.title)||'Career'}</div>
+          <div class="journey-dates">
+            Started: ${formatDate(j.startedAt)}
+            ${j.completedAt?` · Completed: ${formatDate(j.completedAt)}`:` · Last active: ${relDate(j.lastActivityAt)}`}
+          </div>
+        </div>
+        <span class="badge ${statusBadgeClass(j.status)}">${statusLabel(j.status)}</span>
+      </div>
+
+      <div class="journey-progress-label">
+        <span>Progress</span><strong>${pct}%</strong>
+      </div>
+      <div class="progress-bar-wrap" style="height:8px;margin-bottom:.75rem">
+        <div class="progress-bar-fill ${pbColor(pct)}" style="width:${pct}%;transition:width .6s ease"></div>
+      </div>
+
+      <div class="journey-meta">
+        <div class="journey-meta-item">📝 <span>${hasAssessment?j.assessmentCount+' assessment'+(j.assessmentCount>1?'s':''):'No assessment'}</span></div>
+        <div class="journey-meta-item">🗺️ <span>${hasRoadmap?j.roadmap.completedPhases+'/'+j.roadmap.totalPhases+' phases':'No roadmap'}</span></div>
+        ${j.latestResult?`<div class="journey-meta-item">🎯 <span>Score: ${j.latestResult.overallScore||j.latestResult.overallScore===0?j.latestResult.overallScore+'%':'—'}</span></div>`:''}
+      </div>
+
+      <div class="journey-actions">
+        <button class="btn btn-primary btn-sm" onclick="openJourneyModal('${journeyId}')">
+          📂 View Details
+        </button>
+        ${hasRoadmap
+          ? `<a href="/roadmap.html?journeyId=${journeyId}" class="btn btn-outline btn-sm">🗺️ Roadmap</a>`
+          : ''}
+        ${j.latestResult
+          ? `<a href="/results.html?resultId=${j.latestResult._id}" class="btn btn-outline btn-sm">📈 Results</a>`
+          : `<a href="/assessment.html?journeyId=${journeyId}" class="btn btn-secondary btn-sm">📝 Take Assessment</a>`}
+      </div>
+    </div>
+  `;
+}
+
+// ─── Journey Detail Modal ─────────────────────────────────────
+async function openJourneyModal(journeyId) {
+  const modal = document.getElementById('journey-modal');
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('modal-career-icon').textContent = '⏳';
+  document.getElementById('modal-career-title').textContent = 'Loading…';
+  document.getElementById('modal-career-status').innerHTML = '';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="text-align:center;padding:2rem">
+      <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+      <p class="text-muted">Loading journey details...</p>
+    </div>`;
+
+  try {
+    const data = await api.getJourney(journeyId);
+    renderModalContent(data, journeyId);
+  } catch(err) {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="alert alert-error">Failed to load journey: ${err.message}</div>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('journey-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+document.getElementById('journey-modal').addEventListener('click', function(e) {
+  if(e.target===this) closeModal();
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+function renderModalContent(data, journeyId) {
+  const j = data.journey;
+  const results = data.assessmentResults||[];
+  const roadmap = data.roadmap;
+  const mentor  = data.mentorSummary||{};
+  const pct = j.progress||0;
+
+  document.getElementById('modal-career-icon').textContent = j.careerIcon||'🎯';
+  document.getElementById('modal-career-title').textContent = j.careerName||'Career Journey';
+  document.getElementById('modal-career-status').innerHTML = `
+    <span class="badge ${statusBadgeClass(j.status)}">${statusLabel(j.status)}</span>
+    <span style="font-size:.8rem;color:var(--text-muted);margin-left:.5rem">
+      Started ${formatDate(j.startedAt)}
+      ${j.completedAt?` · Completed ${formatDate(j.completedAt)}`:''}
+    </span>`;
+
+  document.getElementById('modal-body').innerHTML = `
+
+    <!-- Progress -->
+    <div class="detail-section">
+      <div class="detail-section-title">Overall Progress</div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem">
+        <div style="font-size:2.25rem;font-weight:900;color:var(--primary-light)">${pct}%</div>
+        <div style="flex:1">
+          <div class="progress-bar-wrap" style="height:10px">
+            <div class="progress-bar-fill ${pbColor(pct)}" style="width:${pct}%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-top:.3rem"><span>0%</span><span>100%</span></div>
+        </div>
+      </div>
+      <div style="font-size:.8rem;color:var(--text-muted)">Last activity: ${relDate(j.lastActivityAt)}</div>
+    </div>
+
+    <!-- Selected Skills -->
+    ${j.selectedSkills&&j.selectedSkills.length>0?`
+      <div class="detail-section">
+        <div class="detail-section-title">Selected Skills (${j.selectedSkills.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+          ${j.selectedSkills.map(s=>`<span class="skill-tag">💡 ${s.skillName||(s.skillId&&s.skillId.name)||'Skill'}</span>`).join('')}
+        </div>
+      </div>
+    `:''}
+
+    <!-- Assessments -->
+    <div class="detail-section">
+      <div class="detail-section-title">Assessment History (${results.length} attempt${results.length!==1?'s':''})</div>
+      ${results.length===0?`
+        <div class="text-muted text-sm" style="padding:.5rem 0">
+          No assessments taken yet.
+          <a href="/assessment.html?journeyId=${journeyId}" style="color:var(--primary-light);margin-left:.5rem">Take assessment →</a>
+        </div>
+      `:results.map((r,i)=>`
+        <div class="assessment-attempt">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">Attempt #${r.attemptNumber||(results.length-i)}</div>
+            <div style="font-size:.78rem;color:var(--text-muted)">${formatDate(r.completedAt)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div style="text-align:right"><div style="font-weight:700;color:var(--primary-light)">${r.overallScore}%</div><div style="font-size:.72rem;color:var(--text-muted)">Score</div></div>
+            <div style="text-align:right"><div style="font-weight:700;color:var(--accent)">${r.careerReadiness}%</div><div style="font-size:.72rem;color:var(--text-muted)">Readiness</div></div>
+            <!-- CRITICAL: link to exact result by resultId -->
+            <a href="/results.html?resultId=${r._id}" class="btn btn-ghost btn-sm" style="font-size:.75rem">View →</a>
+          </div>
+        </div>
+        ${r.skillGaps&&r.skillGaps.filter(g=>g.gap>0).length>0?`
+          <div style="margin-bottom:.75rem;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+            <div style="font-size:.72rem;font-weight:600;color:var(--text-dim);margin-bottom:.5rem;text-transform:uppercase">Skill Gaps</div>
+            <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+              ${r.skillGaps.filter(g=>g.gap>0).slice(0,6).map(g=>`
+                <span style="font-size:.75rem;padding:.2rem .55rem;border-radius:100px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171">
+                  ${g.skillName} (−${g.gap})
+                </span>`).join('')}
+            </div>
+          </div>
+        `:''}
+      `).join('')}
+    </div>
+
+    <!-- Roadmap -->
+    <div class="detail-section">
+      <div class="detail-section-title">Learning Roadmap</div>
+      ${!roadmap?`
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+          <span class="text-muted text-sm">No roadmap generated yet.</span>
+          <a href="/roadmap.html?journeyId=${journeyId}" class="btn btn-primary btn-sm">✨ Generate Roadmap</a>
+        </div>
+      `:`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+          <div style="font-size:.875rem;color:var(--text-muted)">
+            Version ${roadmap.version} · ${roadmap.generatedBy==='AI'?'🤖 AI-generated':'⚙️ System-generated'}
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span style="font-size:1.1rem;font-weight:700;color:var(--primary-light)">${roadmap.overallProgress}%</span>
+            <!-- CRITICAL: pass journeyId so roadmap.html shows the correct roadmap -->
+            <a href="/roadmap.html?journeyId=${journeyId}" class="btn btn-outline btn-sm">Open Roadmap →</a>
+          </div>
+        </div>
+        <div class="progress-bar-wrap" style="height:6px;margin-bottom:1rem">
+          <div class="progress-bar-fill ${pbColor(roadmap.overallProgress)}" style="width:${roadmap.overallProgress}%"></div>
+        </div>
+        <div>
+          ${(roadmap.phases||[]).map(p=>`
+            <div class="phase-row">
+              <div class="phase-row-name">
+                ${p.status==='completed'?'✅':p.status==='in-progress'?'🔄':'⭕'}
+                &nbsp;${p.title}
+              </div>
+              <span class="badge ${p.status==='completed'?'badge-green':p.status==='in-progress'?'badge-blue':'badge-gray'}" style="font-size:.7rem">
+                ${p.status==='completed'?'Done':p.status==='in-progress'?'In Progress':'Not Started'}
+              </span>
+              <div style="font-size:.8rem;color:var(--text-muted);min-width:80px;text-align:right">${p.progressPercentage||0}%</div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+
+    <!-- Mentor -->
+    <div class="detail-section">
+      <div class="detail-section-title">AI Mentor</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+        <div>
+          <div style="font-size:.875rem"><strong>${mentor.sessionCount||0}</strong> <span class="text-muted">total session${mentor.sessionCount!==1?'s':''}</span></div>
+          ${mentor.lastSession?`<div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">Last: "${(mentor.lastSession.title||'New conversation').substring(0,40)}" · ${relDate(mentor.lastSession.updatedAt)}</div>`:''}
+        </div>
+        <!-- journeyId passed so mentor loads the correct career context -->
+        <a href="/mentor.html?journeyId=${journeyId}" class="btn btn-primary btn-sm">🤖 Open Mentor</a>
+      </div>
+    </div>
+
+    <!-- Quick Actions — all pass journeyId -->
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border)">
+      <a href="/assessment.html?journeyId=${journeyId}" class="btn btn-outline btn-sm">📝 New Assessment</a>
+      <a href="/roadmap.html?journeyId=${journeyId}"   class="btn btn-outline btn-sm">🗺️ View Roadmap</a>
+      <a href="/mentor.html?journeyId=${journeyId}"    class="btn btn-outline btn-sm">🤖 AI Mentor</a>
+      ${results.length>0?`<a href="/results.html?resultId=${results[0]._id}" class="btn btn-outline btn-sm">📈 View Results</a>`:''}
+    </div>
+  `;
+}
+
+// ─── Load ─────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const data = await api.getHistory();
+    document.getElementById('loading-state')?.remove();
+    renderHistory(data.history);
+  } catch(err) {
+    document.getElementById('history-content').innerHTML = `
+      <div class="alert alert-error" style="margin-bottom:1rem">Unable to load your career history. Please try again.</div>
+      <div class="card" style="text-align:center;padding:2rem">
+        <div style="font-size:2rem;margin-bottom:1rem">😕</div>
+        <h3 style="margin-bottom:.5rem">Something went wrong</h3>
+        <p class="text-muted" style="margin-bottom:1.25rem">${err.message}</p>
+        <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+      </div>`;
+  }
+}
+
+loadHistory();
+</script>
+</body>
+</html>

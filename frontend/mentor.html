@@ -303,6 +303,11 @@ let historyOpen   = false;
 let userInitial   = 'U';
 let userName      = 'You';
 
+// ── Journey context from URL ─────────────────────────────────────────────────
+const _mentorParams   = new URLSearchParams(location.search);
+const _journeyId      = _mentorParams.get('journeyId') || null;
+const _presetQuestion = _mentorParams.get('q') || null;
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 (async function init() {
   // Show provider badge
@@ -311,18 +316,38 @@ let userName      = 'You';
   badge.textContent = '⚡ ' + provider;
   badge.style.display = 'inline-flex';
 
-  // Load user context
+  // Load user context — if journeyId given, load that journey's career title
   try {
     const p = await api.getProfile();
     const u = p.user;
     userName    = u.name || 'You';
     userInitial = (u.name || 'U')[0].toUpperCase();
-    const career = u.careerGoal?.title || 'your target career';
-    document.getElementById('mentor-subtitle').textContent = `Helping you become a ${career}`;
+    let career  = u.careerGoal?.title || 'your target career';
+
+    // If viewing a specific journey, use that journey's career as the subtitle
+    if (_journeyId) {
+      try {
+        const jRes = await api.getJourney(_journeyId);
+        career = jRes.journey?.careerName || career;
+        const backBtn = `<a href="/history.html" style="font-size:.75rem;color:var(--primary-light);margin-left:1rem">← Back to History</a>`;
+        document.getElementById('mentor-subtitle').textContent = `Career context: ${career}`;
+        document.getElementById('mentor-subtitle').insertAdjacentHTML('beforeend', backBtn);
+      } catch(e) {
+        document.getElementById('mentor-subtitle').textContent = `Helping you become a ${career}`;
+      }
+    } else {
+      document.getElementById('mentor-subtitle').textContent = `Helping you become a ${career}`;
+    }
 
     addMessage('assistant', buildWelcome(u.name, career, u.careerGoal));
   } catch {
     addMessage('assistant', buildWelcome('there', 'your target career', null));
+  }
+
+  // Auto-fill question from URL param (?q=...)
+  if (_presetQuestion) {
+    const input = document.getElementById('message-input');
+    if (input) input.value = decodeURIComponent(_presetQuestion);
   }
 
   // Load history in background
@@ -806,7 +831,7 @@ async function send() {
   document.getElementById('send-btn').disabled = true;
 
   try {
-    const res = await api.chat({ message: text, sessionId });
+    const res = await api.chat({ message: text, sessionId, journeyId: _journeyId });
     sessionId = res.sessionId;
     removeTyping();
     addMessage('assistant', res.message);

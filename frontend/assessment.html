@@ -121,26 +121,92 @@ let totalQuestions = 30;
 let correctCount = 0;
 let answered = false;
 let currentQuestion = null;
+let activeJourneyId = null;
+let activeCareer = null;
+
+// Read journeyId from URL (when coming from History page)
+const _assessParams = new URLSearchParams(location.search);
+const _urlJourneyId = _assessParams.get('journeyId') || null;
 
 // ── Load career info on start screen ──────────────────────────
 async function initStartScreen() {
   try {
+    // PRIORITY: if journeyId came from URL (History page), use that journey
+    if (_urlJourneyId) {
+      try {
+        const jRes = await api.getJourney(_urlJourneyId);
+        const journey = jRes.journey;
+        activeJourneyId = journey._id;
+        // careerId may be populated object or raw id
+        activeCareer = journey.careerId && journey.careerId._id
+          ? journey.careerId
+          : { _id: journey.careerId, title: journey.careerName, icon: journey.careerIcon };
+
+        document.getElementById('career-info').innerHTML = `
+          <div style="display:inline-flex;flex-direction:column;align-items:center;gap:.25rem;
+               background:var(--bg-hover);border-radius:var(--radius-sm);padding:.75rem 1.5rem">
+            <div style="display:flex;align-items:center;gap:.5rem;font-size:.875rem">
+              <span>${journey.careerIcon || '🎯'}</span>
+              <span>Career: <strong>${journey.careerName}</strong></span>
+            </div>
+            <div style="font-size:.75rem;color:var(--text-muted)">
+              🔄 ${journey.status === 'IN_PROGRESS' ? 'Continuing journey' : 'Starting journey'}
+              · Progress: ${journey.progress}%
+              · Previous attempts: ${jRes.assessmentResults ? jRes.assessmentResults.length : 0}
+            </div>
+          </div>
+          <div style="margin-top:.5rem">
+            <a href="/history.html" class="btn btn-ghost btn-sm">← Back to History</a>
+          </div>
+        `;
+        return; // done — don't fall through to profile-based init
+      } catch(e) {
+        // Journey lookup failed — fall through to profile
+      }
+    }
+
+    // DEFAULT: use current profile career goal
     const profile = await api.getProfile();
     const career = profile.user?.careerGoal;
+    activeCareer = career;
+
     if (career) {
+      let journeyMsg = '';
+      try {
+        const journeysRes = await api.getJourneys();
+        const existingJourney = (journeysRes.journeys || []).find(j => {
+          const jCareerId = j.careerId && j.careerId._id ? j.careerId._id : j.careerId;
+          return jCareerId && jCareerId.toString() === career._id.toString();
+        });
+        if (existingJourney) {
+          activeJourneyId = existingJourney._id;
+          journeyMsg = `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem">
+            ${existingJourney.status === 'IN_PROGRESS' ? '🔄 Continuing existing journey' : '🚀 Starting journey'}
+            · Progress: ${existingJourney.progress}%
+          </div>`;
+        }
+      } catch(e) {}
+
       document.getElementById('career-info').innerHTML = `
-        <div style="display:inline-flex;align-items:center;gap:.5rem;background:var(--bg-hover);border-radius:100px;padding:.4rem 1rem;font-size:.875rem">
-          <span>${career.icon || '🎯'}</span>
-          <span>Career: <strong>${career.title}</strong></span>
+        <div style="display:inline-flex;flex-direction:column;align-items:center;gap:.25rem;
+             background:var(--bg-hover);border-radius:var(--radius-sm);padding:.75rem 1.5rem;font-size:.875rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span>${career.icon || '🎯'}</span>
+            <span>Career: <strong>${career.title}</strong></span>
+          </div>
+          ${journeyMsg}
         </div>
       `;
     } else {
       document.getElementById('start-btn').disabled = true;
       document.getElementById('career-info').innerHTML = `
-        <div class="alert alert-warning">Please <a href="/profile.html" style="color:var(--warning)">set your career goal</a> before starting.</div>
+        <div class="alert alert-warning">Please
+          <a href="/profile.html" style="color:var(--warning)">set your career goal</a>
+          before starting.
+        </div>
       `;
     }
-  } catch {}
+  } catch(e) {}
 }
 
 // ── Start assessment ───────────────────────────────────────────
@@ -148,7 +214,22 @@ async function startAssessment() {
   const btn = document.getElementById('start-btn');
   setLoading(btn, true, 'Starting...');
   try {
-    const data = await api.startAssessment();
+    // Priority: URL journeyId > resolved activeJourneyId from profile
+    const effectiveJourneyId = _urlJourneyId || activeJourneyId;
+
+    // Ensure journey exists (idempotent — returns existing if found)
+    if (activeCareer && activeCareer._id) {
+      try {
+        const jRes = await api.createJourney({ careerId: activeCareer._id });
+        if (!effectiveJourneyId) activeJourneyId = jRes.journey._id;
+      } catch(e) { /* non-fatal */ }
+    }
+
+    const careerId = activeCareer
+      ? (activeCareer._id || activeCareer)
+      : null;
+
+    const data = await api.startAssessment(careerId, effectiveJourneyId || activeJourneyId);
     assessmentId   = data.assessmentId;
     totalQuestions = data.totalQuestions;
     currentIndex   = 0;

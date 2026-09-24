@@ -73,12 +73,18 @@ const api = {
   getSkills:  () => api.get('/skills'),
 
   // Assessment
-  startAssessment:  (careerId) => api.post('/assessment/start', { careerId }),
+  startAssessment:  (careerId, journeyId) => api.post('/assessment/start', { careerId, journeyId }),
   getQuestion:      (id, index) => api.get(`/assessment/${id}/question?index=${index}`),
   submitAnswer:     (id, data)  => api.post(`/assessment/${id}/answer`, data),
   submitAssessment: (id)        => api.post(`/assessment/${id}/submit`, {}),
   getResult:        (id)        => api.get(`/assessment/${id}/result`),
-  getLatestResult:  ()          => api.get('/assessment/latest'),
+  getLatestResult:  (careerId, journeyId) => {
+    const p = new URLSearchParams();
+    if (careerId)  p.set('careerId', careerId);
+    if (journeyId) p.set('journeyId', journeyId);
+    const qs = p.toString();
+    return api.get(`/assessment/latest${qs ? '?' + qs : ''}`);
+  },
   getAssessmentHistory: ()      => api.get('/assessment/history'),
 
   // Dashboard
@@ -86,16 +92,33 @@ const api = {
   getSkillGaps: (careerId)   => api.get(`/dashboard/skill-gaps${careerId ? `?careerId=${careerId}` : ''}`),
 
   // Roadmap
-  generateRoadmap:    (careerId) => api.post('/roadmap/generate', { careerId }),
-  getRoadmap:         (careerId) => api.get(`/roadmap${careerId ? `?careerId=${careerId}` : ''}`),
+  generateRoadmap:    (careerId, journeyId) => api.post('/roadmap/generate', { careerId, journeyId }),
+  getRoadmap:         (careerId, journeyId) => {
+    const params = new URLSearchParams();
+    if (journeyId) params.set('journeyId', journeyId);
+    else if (careerId) params.set('careerId', careerId);
+    const qs = params.toString();
+    return api.get(`/roadmap${qs ? '?' + qs : ''}`);
+  },
   updateProgress:     (data)     => api.put('/roadmap/progress', data),
-  recalculateRoadmap: (careerId) => api.post('/roadmap/recalculate', { careerId }),
+  recalculateRoadmap: (careerId, journeyId) => api.post('/roadmap/recalculate', { careerId, journeyId }),
 
-  // Mentor
+  // Mentor — optional journeyId for context
   chat:          (data)      => api.post('/mentor/chat', data),
   getMentorHistory: ()       => api.get('/mentor/history'),
   getMentorSession: (id)     => api.get(`/mentor/session/${id}`),
   deleteSession: (id)        => api.delete(`/mentor/session/${id}`),
+
+  // Career Journeys
+  getJourneys:        ()           => api.get('/journeys'),
+  createJourney:      (data)       => api.post('/journeys', data),
+  getJourney:         (id)         => api.get(`/journeys/${id}`),
+  updateJourney:      (id, data)   => request(`/journeys/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getJourneyAssessments: (id)      => api.get(`/journeys/${id}/assessments`),
+  syncJourneyProgress:  (id)       => request(`/journeys/${id}/sync-progress`, { method: 'PATCH', body: JSON.stringify({}) }),
+
+  // History
+  getHistory: () => api.get('/journeys/history'),
 };
 
 function requireAuth() {
